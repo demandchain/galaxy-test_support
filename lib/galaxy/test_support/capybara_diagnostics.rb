@@ -26,8 +26,12 @@ module Galaxy
 
             filename = File.expand_path("./tmp/#{filename}.png")
 
-            browser.save_screenshot(filename)
-            puts("Saved screen shot: #{filename}")
+            begin
+              browser.save_screenshot(filename)
+              puts("Saved screen shot: #{filename}")
+            rescue Capybara::NotSupportedByDriverError
+              puts("Could not save screenshot.")
+            end
           end
         end
       end
