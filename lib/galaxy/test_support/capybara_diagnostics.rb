@@ -94,7 +94,7 @@ module Galaxy
       #        result in false-positives.  However since Selenium is buggy, this is the
       #        best solution I have other than going to capybara-webkit or poltergeist
       class FindAction
-        def initialize(test_object, function_name, args)
+        def initialize(test_object, function_name, *args)
           @test_object   = test_object
           @function_name = function_name
           @args          = args
@@ -111,18 +111,11 @@ module Galaxy
             output_basic_details
             output_finder_details
 
-            #screen_shot_dir = ::Rails.root.join "tmp/screen_shots"
-            #FileUtils.mkdir_p(screen_shot_dir)
-            #screenshot_name = File.join(screen_shot_dir, "#{DateTime.now.strftime("%Y_%m_%d")}_failure_#{SecureRandom.uuid}.png")
-            #Capybara.current_session.save_screenshot screenshot_name
-            #
-            #puts("\n\nscreenshot: #{screenshot_name}")
-            #puts("page.url: #{Capybara.current_session.current_url}")
-            #puts("page.html:")
-            #puts(Capybara.current_session.html)
-
             return @return_value if retry_action_with_found_element
-            return @return_value if alternate_action_with_found_element
+            if alternate_action_with_found_element
+              Galaxy::TestSupport::CapybaraDiagnostics.output_page_details "#{DateTime.now.strftime("%Y_%m_%d")}_failure_#{SecureRandom.uuid}.png"
+              return @return_value
+            end
 
             raise $!
           end
@@ -142,9 +135,11 @@ module Galaxy
             end
           end
 
-          puts("\nEnvironment information:")
-          puts("  Window Height : #{Capybara.current_session.driver.evaluate_script("window.innerHeight")}")
-          puts("  Window Width  : #{Capybara.current_session.driver.evaluate_script("window.innerWidth")}")
+          if Capybara.current_session.driver.respond_to? :evaluate_script
+            puts("\nEnvironment information:")
+            puts("  Window Height : #{Capybara.current_session.driver.evaluate_script("window.innerHeight")}")
+            puts("  Window Width  : #{Capybara.current_session.driver.evaluate_script("window.innerWidth")}")
+          end
         end
 
         # Output some hopefully diagnostically useful information about the item being
@@ -162,7 +157,7 @@ module Galaxy
             end
           end
 
-          all_page_elements = Capybara.current_session.all(*search_args, visible: false)
+          all_page_elements = Capybara.current_session.all(*search_args, visible: false).to_a
           puts("  Found #{all_elements.length} items.")
           all_elements.each_with_index do |element, element_index|
             analyze_report_element(element, element_index)
@@ -216,9 +211,10 @@ module Galaxy
         end
 
         def alternate_action_with_found_element
-          if found_element
+          if found_element &&
+              Capybara.current_session.driver.respond_to?(:evaluate_script)
             begin
-              native_id = found_element.native.attribute("id")
+              native_id = get_attribute found_element, "id"
               if (native_id)
                 puts("  Trying action through JScript...")
                 case @function_name.to_s
@@ -244,6 +240,8 @@ module Galaxy
             rescue
               puts "    Still couldn't do the action - #{$!.to_s}."
             end
+          else
+            puts "    Could not attempt to try the action through an alternate method."
           end
 
           false
@@ -274,7 +272,7 @@ module Galaxy
               from_element = @test_object
             end
 
-            @all_elements = from_element.all(*search_args, visible: false)
+            @all_elements = from_element.all(*search_args, visible: false).to_a
           end
 
           @all_elements
@@ -361,14 +359,27 @@ module Galaxy
 
           #information from Selenium that are common attributes
           ["id", "name", "class", "value", "href", "style", "type"].each do |attrib|
-            element_attribute = element.native.attribute(attrib)
+            element_attribute = get_attribute element, attrib
             puts("      #{attrib}#{" " * (10 - attrib.length)} = #{element_attribute}") unless element_attribute.blank?
           end
 
           # information from Selenium that may not be available depending on the form, the full outerHTML of the element
-          element_id = element.native.attribute("id")
-          unless (element_id.blank?)
-            puts("      outterHTML = #{@test_object.evaluate_script("$(\"\##{element_id}\")[0].outerHTML")}")
+          if (@test_object.respond_to?(:evaluate_script))
+            element_id = get_attribute element, "id"
+            unless (element_id.blank?)
+              puts("      outterHTML = #{@test_object.evaluate_script("$(\"\##{element_id}\")[0].outerHTML")}")
+            end
+          end
+          puts("      inspect    = #{element.pretty_inspect}")
+        end
+
+        def get_attribute(element, attribute)
+          if element.native.respond_to?(:attribute)
+            element.native.attribute(attribute)
+          elsif element.native.respond_to?(:[])
+            element.native[attribute]
+          else
+            nil
           end
         end
       end
