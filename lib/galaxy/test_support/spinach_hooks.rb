@@ -22,7 +22,7 @@ def debug_failed_step(failure_description, step_data, exception, location, step_
   puts("")
   puts("Step definition instance variables:")
   step_definitions.instance_variable_names.each do |name|
-    puts("#{name} = #{step_definitions.send(:instance_variable_get, name).to_s}\n\n")
+    puts("#{name} = #{step_definitions.send(:instance_variable_get, name).pretty_inspect}\n\n")
   end
 
   Galaxy::TestSupport::CapybaraDiagnostics.output_page_details("#{step_data.name}:#{step_data.line}")
