@@ -59,7 +59,7 @@ module Galaxy
       #   Instead of calling: <test_object>.<function> <args>
       #   you would call:     test_finder <test_object>, :<function>, <args>
       def self.test_finder(test_object, function_name, *args)
-        FindAction.new(test_object, function_name, args).run
+        FindAction.new(test_object, function_name, *args).run
       end
 
       # At the end of the day, almost everything in Capybara calls all to find the element that needs
