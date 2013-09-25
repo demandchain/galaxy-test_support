@@ -1,7 +1,7 @@
 module Galaxy
   module TestSupport
     class DiagnosticsReportBuilder
-      MAX_OLD_FOLDERS = 10
+      MAX_OLD_FOLDERS = 5
 
       class ReportTable
         def initialize
