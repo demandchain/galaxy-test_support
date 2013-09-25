@@ -1,36 +1,42 @@
+require ::File.expand_path('diagnostics_report_builder', File.dirname(__FILE__))
+
 module Galaxy
   module TestSupport
     class CapybaraDiagnostics
       def self.output_page_details(screenshot_name)
         my_page = Capybara.current_session
         if (my_page)
-          puts("page.url: #{my_page.current_url}") if my_page.try(:current_url)
+          DiagnosticsReportBuilder.current_report.within_section("Page Dump:") do |report|
+            report.within_table do |report_table|
+              report_table.write_stats "Page URL:", my_page.current_url if my_page.try(:current_url)
 
-          if my_page.respond_to?(:html)
-            puts("Page HTML:")
-            puts(my_page.html)
-          end
+              if my_page.respond_to?(:html)
+                report_table.write_stats "Page HTML:", report.page_dump(my_page.html)
+                report_table.write_stats "Page:", report.page_link(my_page.html)
+              end
 
-          browser = my_page.try(:driver)
-          browser = browser.try(:browser) unless browser.respond_to?(:save_screenshot)
+              browser = my_page.try(:driver)
+              browser = browser.try(:browser) unless browser.respond_to?(:save_screenshot)
 
-          if browser.respond_to?(:save_screenshot)
-            Dir.mkdir("./tmp") unless File.directory?("./tmp")
+              if browser.respond_to?(:save_screenshot)
+                Dir.mkdir("./tmp") unless File.directory?("./tmp")
 
-            filename = screenshot_name
-            filename = SecureRandom.uuid if filename.blank?
-            filename = filename[Dir.pwd.length..-1] if filename.start_with?(Dir.pwd)
-            filename = filename[1..-1] if filename.start_with?("/")
-            filename = filename["features/".length..-1] if filename.start_with?("features/")
-            filename = filename.gsub("/", "-").gsub(" ", "_").gsub(":", "-")
+                filename = screenshot_name
+                filename = SecureRandom.uuid if filename.blank?
+                filename = filename[Dir.pwd.length..-1] if filename.start_with?(Dir.pwd)
+                filename = filename[1..-1] if filename.start_with?("/")
+                filename = filename["features/".length..-1] if filename.start_with?("features/")
+                filename = filename.gsub("/", "-").gsub(" ", "_").gsub(":", "-")
 
-            filename = File.expand_path("./tmp/#{filename}.png")
+                filename = File.expand_path("./tmp/#{filename}.png")
 
-            begin
-              browser.save_screenshot(filename)
-              puts("Saved screen shot: #{filename}")
-            rescue Capybara::NotSupportedByDriverError
-              puts("Could not save screenshot.")
+                begin
+                  browser.save_screenshot(filename)
+                  report_table.write_stats "Screen Shot:", report.image_link(filename)
+                rescue Capybara::NotSupportedByDriverError
+                  report_table.write_stats "Screen Shot:", "Could not save screenshot."
+                end
+              end
             end
           end
         end
@@ -104,17 +110,19 @@ module Galaxy
           begin
             @test_object.send(@function_name, *@args)
           rescue
-            puts("An error occurred while processing \"#{@function_name.to_s}\":")
-            puts("  #{$!.to_s}")
-            puts("    #{$!.backtrace.join("\n    ")}")
+            DiagnosticsReportBuilder.current_report.within_section("An error occurred while processing \"#{@function_name.to_s}\":") do |report|
+              report.within_table do |report_table|
+                report_table.write_stats "Error:", $!.to_s
+                report_table.write_stats "Backtrace:", $!.backtrace.join("<br />")
+                output_basic_details report_table
+                output_finder_details report_table
 
-            output_basic_details
-            output_finder_details
-
-            return @return_value if retry_action_with_found_element
-            if alternate_action_with_found_element
-              Galaxy::TestSupport::CapybaraDiagnostics.output_page_details "#{DateTime.now.strftime("%Y_%m_%d")}_failure_#{SecureRandom.uuid}.png"
-              return @return_value
+                return @return_value if retry_action_with_found_element report_table
+                if alternate_action_with_found_element report_table
+                  Galaxy::TestSupport::CapybaraDiagnostics.output_page_details "#{DateTime.now.strftime("%Y_%m_%d")}_failure_#{SecureRandom.uuid}.png"
+                  return @return_value
+                end
+              end
             end
 
             raise $!
@@ -122,23 +130,25 @@ module Galaxy
         end
 
         # Dump the arguments to the function to the console for analysis.
-        def output_basic_details
-          puts("\nFunction: #{@function_name.to_s}")
-          puts("Dumping args:")
+        def output_basic_details report_table
+          report_table.write_stats "Function:", @function_name.to_s
 
+          args_table = Galaxy::TestSupport::DiagnosticsReportBuilder::ReportTable.new
           search_args.each_with_index do |the_arg, arg_index|
-            puts("  [#{arg_index}] = #{dump_value(the_arg)}#{(arg_index == 0 && @args[0] != the_arg) ? " (guessed)" : nil}")
+            args_table.write_stats "[#{arg_index}]", dump_value(the_arg) + ((arg_index == 0 && @args[0] != the_arg) ? " (guessed)" : "")
           end
           if options
             options.each do |key, value|
-              puts("  #{key}: #{dump_value(value)}")
+              args_table.write_stats key, dump_value(value)
             end
           end
 
+          report_table.write_stats "Args:", args_table.full_table
+
+
           if Capybara.current_session.driver.respond_to? :evaluate_script
-            puts("\nEnvironment information:")
-            puts("  Window Height : #{Capybara.current_session.driver.evaluate_script("window.innerHeight")}")
-            puts("  Window Width  : #{Capybara.current_session.driver.evaluate_script("window.innerWidth")}")
+            report_table.write_stats "Window Height:", Capybara.current_session.driver.evaluate_script("window.innerHeight")
+            report_table.write_stats "Window Width:", Capybara.current_session.driver.evaluate_script("window.innerWidth")
           end
         end
 
@@ -147,36 +157,34 @@ module Galaxy
         #
         # Start by trying to use all to find all instances, even if hidden.
         # This may help identify why the right one isn't being found.
-        def output_finder_details
-          puts("\nAnalyzing finder for #{@function_name}...")
-
+        def output_finder_details report_table
           if guessed_types.length > 1
-            puts ("  Alternate possible types:")
-            guessed_types.each do |guessed_type|
-              puts ("    #{guessed_type}")
-            end
+            report_table.write_stats "Alternate possible types:", guessed_types.join("<br />")
           end
 
           all_page_elements = Capybara.current_session.all(*search_args, visible: false).to_a
-          puts("  Found #{all_elements.length} items.")
+          all_elements report_table
+          report_table.write_stats "Total elements found:", all_elements.length
           all_elements.each_with_index do |element, element_index|
-            analyze_report_element(element, element_index)
+            report_table.write "Element[#{element_index}]", analyze_report_element(element)
           end
 
           if (all_elements.length != all_page_elements.length)
             all_other_elements = all_page_elements - all_elements
-            puts("  Found #{all_other_elements.length} items elsewhere on the page:")
+            report_table.write_stats "Total elements found elsewhere:", all_other_elements.length
             all_other_elements.each_with_index do |element, element_index|
-              analyze_report_element(element, element_index)
+              report_table.write "Other Element[#{element_index}]", analyze_report_element(element)
             end
           end
         end
 
-        def retry_action_with_found_element
-          if found_element
-            begin
-              puts("  Trying action manually...")
+        def retry_action_with_found_element report_table
+          return_result = false
 
+          if found_element
+            result = "Success"
+
+            begin
               case @function_name.to_s
                 when "click_link_or_button", "click_link", "click_button"
                   @return_value = found_element.click
@@ -197,26 +205,30 @@ module Galaxy
                 when "first"
                   @return_value = all_elements.first
                 else
-                  puts("    Could not decide what to do with #{@function_name}")
+                  result = "Could not decide what to do with #{@function_name}"
                   raise new Exception("unknown action")
               end
 
-              return true
+              return_result = true
             rescue
-              puts "    Still couldn't do the action - #{$!.to_s}."
+              result ||= "Still couldn't do the action - #{$!.to_s}."
             end
+
+            report_table.write_stats "Retrying action:", result
           end
 
-          false
+          return_result
         end
 
-        def alternate_action_with_found_element
+        def alternate_action_with_found_element report_table
+          return_result = false
+
+          result = "Could not attempt to try the action through an alternate method."
           if found_element &&
               Capybara.current_session.driver.respond_to?(:evaluate_script)
             begin
               native_id = get_attribute found_element, "id"
               if (native_id)
-                puts("  Trying action through JScript...")
                 case @function_name.to_s
                   when "click_link_or_button", "click_link", "click_button"
                     @return_value = Capybara.current_session.driver.evaluate_script("$(\"\##{native_id}\")[0].click()")
@@ -231,20 +243,19 @@ module Galaxy
                   when "unselect"
                     @return_value = Capybara.current_session.driver.evaluate_script("$(\"\##{native_id}\")[0].val(\"selected\", false)")
                   else
-                    puts("    Could not decide what to do with #{@function_name}")
+                    result = "Could not decide what to do with #{@function_name}"
                     raise new Exception("unknown action")
                 end
 
-                return true
+                return_result = true
               end
             rescue
-              puts "    Still couldn't do the action - #{$!.to_s}."
+              result ||= "Still couldn't do the action - #{$!.to_s}."
             end
-          else
-            puts "    Could not attempt to try the action through an alternate method."
           end
 
-          false
+          report_table.write_stats "Trying alternate action:", result
+          return_result
         end
 
         def found_element
@@ -255,16 +266,18 @@ module Galaxy
           end
         end
 
-        def all_elements
+        def all_elements report_table = nil
           unless @all_elements
             if options && options.has_key?(:from)
               from_within = FindAction.new(@test_object, :find, [:select, options[:from]])
-              from_within.output_basic_details
-              from_within.output_finder_details
+              sub_report  = Galaxy::TestSupport::DiagnosticsReportBuilder::ReportTable.new
+              from_within.output_basic_details sub_report
+              from_within.output_finder_details sub_report
+              report_table.write_stats "Within block:", sub_report.full_table
+
               from_element = from_within.found_element
 
               unless from_element
-                puts "  Could not find the selection combo #{options[:from]}"
                 @all_elements = []
                 return @all_elements
               end
@@ -338,14 +351,14 @@ module Galaxy
         end
 
         # Output any information we can easily obtain about a DOM element
-        def analyze_report_element(element, element_index)
-          puts("    Element [#{element_index}]")
+        def analyze_report_element(element)
+          element_report = Galaxy::TestSupport::DiagnosticsReportBuilder::ReportTable.new
 
           #information from Capybara
           ["text", "value", "visible?", "checked?", "selected?"].each do |attrib|
             if element.respond_to?(attrib)
               element_attribute = element.send(attrib)
-              puts("      #{attrib}#{" " * (10 - attrib.length)} = #{element_attribute}") unless element_attribute.blank?
+              element_report.write_stats attrib, element_attribute unless element_attribute.blank?
             end
           end
 
@@ -353,24 +366,26 @@ module Galaxy
           ["tag_name", "location", "size"].each do |attrib|
             if (element.native.respond_to?(attrib))
               element_attribute = element.native.send(attrib)
-              puts("      #{attrib}#{" " * (10 - attrib.length)} = #{element_attribute}") unless element_attribute.blank?
+              element_report.write_stats attrib, element_attribute unless element_attribute.blank?
             end
           end
 
           #information from Selenium that are common attributes
           ["id", "name", "class", "value", "href", "style", "type"].each do |attrib|
             element_attribute = get_attribute element, attrib
-            puts("      #{attrib}#{" " * (10 - attrib.length)} = #{element_attribute}") unless element_attribute.blank?
+            element_report.write_stats attrib, element_attribute unless element_attribute.blank?
           end
 
           # information from Selenium that may not be available depending on the form, the full outerHTML of the element
           if (@test_object.respond_to?(:evaluate_script))
             element_id = get_attribute element, "id"
             unless (element_id.blank?)
-              puts("      outterHTML = #{@test_object.evaluate_script("$(\"\##{element_id}\")[0].outerHTML")}")
+              element_report.write_stats "outterHTML", @test_object.evaluate_script("$(\"\##{element_id}\")[0].outerHTML")
             end
           end
-          puts("      inspect    = #{element.pretty_inspect}")
+          element_report.write_stats "inspect", element.pretty_inspect
+
+          element_report.full_table
         end
 
         def get_attribute(element, attribute)
