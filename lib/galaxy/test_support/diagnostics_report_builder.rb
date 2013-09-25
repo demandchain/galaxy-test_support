@@ -42,16 +42,25 @@ module Galaxy
         end
       end
 
+      def close_report
+        unless File.exists?(report_page_name)
+          base_page
+          File.open(report_page_name, "a") do |write_file|
+            write_file.write(%Q[<p>No Errors to report</p>])
+          end
+        end
+      end
+
       def report_folder_name
         unless @folder_name
           cleanup_old_folders
 
-          if Dir.exists?(Rails.root.join("tmp/diagnostics_report/"))
-            FileUtils.mv Rails.root.join("tmp/diagnostics_report/"),
-                         Rails.root.join("tmp/diagnostics_report_#{DateTime.now.strftime("%Y_%m_%d_%H_%M_%S")}/")
+          if Dir.exists?(Rails.root.join("diagnostics_report/"))
+            FileUtils.mv Rails.root.join("diagnostics_report/"),
+                         Rails.root.join("diagnostics_report_#{DateTime.now.strftime("%Y_%m_%d_%H_%M_%S")}/")
           end
 
-          @folder_name = Rails.root.join("tmp/diagnostics_report/")
+          @folder_name = Rails.root.join("diagnostics_report/")
           FileUtils.mkdir_p @folder_name
           base_page
         end
@@ -63,7 +72,7 @@ module Galaxy
       # so it occasionally cleans up old folders so they don't get
       # too out of hand...
       def cleanup_old_folders
-        old_directories = Dir[Rails.root.join("tmp/diagnostics_report_*")].each { |dir| Dir.exists?(dir) ? dir : nil }.compact
+        old_directories = Dir[Rails.root.join("diagnostics_report_*")].each { |dir| Dir.exists?(dir) ? dir : nil }.compact
         if Array.wrap(old_directories).length > MAX_OLD_FOLDERS
           old_directories.each_with_index do |dir, index|
             return if index > old_directories.length - MAX_OLD_FOLDERS

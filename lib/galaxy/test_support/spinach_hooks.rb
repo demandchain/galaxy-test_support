@@ -27,3 +27,7 @@ def debug_failed_step(failure_description, step_data, exception, location, step_
 
   Galaxy::TestSupport::CapybaraDiagnostics.output_page_details("#{step_data.name}:#{step_data.line}")
 end
+
+Spinach.hooks.after_run do |status|
+  Galaxy::TestSupport::DiagnosticsReportBuilder.current_report.close_report
+end

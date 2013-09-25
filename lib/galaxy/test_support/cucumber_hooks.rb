@@ -20,3 +20,7 @@ After do |scenario|
     Galaxy::TestSupport::CapybaraDiagnostics.output_page_details(scenario.file_colon_line)
   end
 end
+
+at_exit do
+  Galaxy::TestSupport::DiagnosticsReportBuilder.current_report.close_report
+end
