@@ -4,8 +4,10 @@ After do |scenario|
   if scenario.failed?
     Galaxy::TestSupport::DiagnosticsReportBuilder.current_report.within_section("Error:") do |report|
       report.within_table do |report_table|
-        report_table.write_stats "Exception:", scenario.exception.to_s if scenario.exception
-        report_table.write_stats "Backtrace:", scenario.exception.backtrace.join("<br>") if scenario.exception
+        if scenario.exception
+          report_table.write_stats "Exception:", scenario.exception.to_s
+          report_table.write_stats "Backtrace:", report.formatted_backtrace scenario.exception
+        end
 
         vars_report = Galaxy::TestSupport::DiagnosticsReportBuilder::ReportTable.new
         scenario.instance_variable_names.each do |name|

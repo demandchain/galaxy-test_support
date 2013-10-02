@@ -15,7 +15,7 @@ def debug_failed_step(failure_description, step_data, exception, location, step_
       report_table.write_stats "Scenario:", step_data.scenario if step_data.scenario
       report_table.write_stats "Line:", "#{step_data.name}:#{step_data.line}"
       report_table.write_stats "Exception:", exception.to_s
-      report_table.write_stats "Backtrace:", exception.backtrace.join("<br>")
+      report_table.write_stats "Backtrace:", report.formatted_backtrace(exception)
 
       vars_report = Galaxy::TestSupport::DiagnosticsReportBuilder::ReportTable.new
       step_definitions.instance_variable_names.each do |name|

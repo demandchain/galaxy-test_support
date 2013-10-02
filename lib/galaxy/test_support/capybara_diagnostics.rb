@@ -113,7 +113,7 @@ module Galaxy
             DiagnosticsReportBuilder.current_report.within_section("An error occurred while processing \"#{@function_name.to_s}\":") do |report|
               report.within_table do |report_table|
                 report_table.write_stats "Error:", $!.to_s
-                report_table.write_stats "Backtrace:", $!.backtrace.join("<br />")
+                report_table.write_stats "Backtrace:", report.formatted_backtrace($!)
                 output_basic_details report_table
                 output_finder_details report_table
 
@@ -159,7 +159,7 @@ module Galaxy
         # This may help identify why the right one isn't being found.
         def output_finder_details report_table
           if guessed_types.length > 1
-            report_table.write_stats "Alternate possible types:", guessed_types.join("<br />")
+            report_table.write_stats "Alternate possible types:", guessed_types.join("<br />").html_safe
           end
 
           all_page_elements = Capybara.current_session.all(*search_args, visible: false).to_a

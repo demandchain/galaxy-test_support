@@ -3,6 +3,14 @@ module Galaxy
     class DiagnosticsReportBuilder
       MAX_OLD_FOLDERS = 5
 
+      def self.escape_string value
+        if value.html_safe?
+          value
+        else
+          CGI::escapeHTML(value)
+        end
+      end
+
       class ReportTable
         def initialize
           @full_table   = ""
@@ -21,14 +29,14 @@ module Galaxy
 
         def write_stats label, value
           @full_table << "<div style=\"display: table-row;\">"
-          @full_table << "<div style=\"display: table-cell; font-weight: bold; vertical-align: top;\">#{label}</div>"
-          @full_table << "<div style=\"display: table-cell;\">#{value}</div>"
+          @full_table << "<div style=\"display: table-cell; font-weight: bold; vertical-align: top;\">#{Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(label)}</div>"
+          @full_table << "<div style=\"display: table-cell;\">#{Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(value)}</div>"
           @full_table << "</div>"
         end
 
         def full_table
           close_table
-          @full_table
+          @full_table.html_safe
         end
       end
 
@@ -108,7 +116,7 @@ module Galaxy
       def within_section(section_text, &block)
         begin
           File.open(report_page_name, "a") do |write_file|
-            write_file.write("<p>#{section_text}</p>")
+            write_file.write("<p>#{Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(section_text)}</p>")
             write_file.write("<div>")
           end
           block.yield self
@@ -143,11 +151,11 @@ module Galaxy
 
         FileUtils.mv image_file_name, dest_file_name
 
-        "<img src=\"#{File.basename(dest_file_name)}\" />"
+        "<img src=\"#{File.basename(dest_file_name)}\" />".html_safe
       end
 
       def page_dump(page_html)
-        "<textarea style=\"width: 100%;\" rows=\"20\">#{CGI::escapeHTML(page_html)}</textarea>"
+        "<textarea style=\"width: 100%;\" rows=\"20\">#{Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(page_html)}</textarea>".html_safe
       end
 
       def page_link(page_html)
@@ -155,7 +163,11 @@ module Galaxy
         File.open(dump_file_name, "a+") do |dump_file|
           dump_file.write page_html
         end
-        "<iframe src=\"#{dump_file_name}\" style=\"width: 100%; height: 500px;\"></iframe>"
+        "<iframe src=\"#{dump_file_name}\" style=\"width: 100%; height: 500px;\"></iframe>".html_safe
+      end
+
+      def formatted_backtrace(error)
+        error.backtrace.join("<br />").gsub(/(#{Rails.root})([^\:]*\:[^\:]*)/, "\\1 <b>\\2</b> ").html_safe
       end
 
       def html_dump_file_name
