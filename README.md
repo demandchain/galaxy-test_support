@@ -24,10 +24,16 @@ include:
 * The stack trace of the thrown error
 
 To add the hooks for automated error reporting on step failure, simply add the following lines to the end
-of the env.rb file:
+of the indicated file:
 
-    require "galaxy/test_support/capybara_diagnostics"
-    require "galaxy/test_support/cucumber_hooks"
+For RSpec:
+    spec_helper.rb:  require "galaxy/test_support/rspec_hooks"
+
+For Spinach:
+    env.rb:  require "galaxy/test_support/spinach_hooks"
+
+For Cucumber:
+    env.rb:  require "galaxy/test_support/cucumber_hooks"
 
 ### Finder analysis
 

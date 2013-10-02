@@ -4,8 +4,14 @@ module Galaxy
   module TestSupport
     class CapybaraDiagnostics
       def self.output_page_details(screenshot_name)
-        my_page = Capybara.current_session
-        if (my_page)
+        begin
+          my_page = Capybara.current_session
+        rescue
+          # in case Capybara isn't being used.
+          # just keep going...
+        end
+
+        if (my_page && my_page.current_url.present?)
           DiagnosticsReportBuilder.current_report.within_section("Page Dump:") do |report|
             report.within_table do |report_table|
               report_table.write_stats "Page URL:", my_page.current_url if my_page.try(:current_url)

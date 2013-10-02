@@ -1,3 +1,4 @@
+require ::File.expand_path('capybara_diagnostics', File.dirname(__FILE__))
 require ::File.expand_path('diagnostics_report_builder', File.dirname(__FILE__))
 
 After do |scenario|
@@ -6,7 +7,7 @@ After do |scenario|
       report.within_table do |report_table|
         if scenario.exception
           report_table.write_stats "Exception:", scenario.exception.to_s
-          report_table.write_stats "Backtrace:", report.formatted_backtrace scenario.exception
+          report_table.write_stats "Backtrace:", report.formatted_backtrace(scenario.exception)
         end
 
         vars_report = Galaxy::TestSupport::DiagnosticsReportBuilder::ReportTable.new
@@ -26,3 +27,5 @@ end
 at_exit do
   Galaxy::TestSupport::DiagnosticsReportBuilder.current_report.close_report
 end
+
+Galaxy::TestSupport::DiagnosticsReportBuilder.new_report

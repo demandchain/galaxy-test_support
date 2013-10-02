@@ -11,6 +11,10 @@ module Galaxy
         end
       end
 
+      def initialize(folder_name = "diagnostics_report")
+        @base_folder_name = folder_name
+      end
+
       class ReportTable
         def initialize
           @full_table   = ""
@@ -41,12 +45,12 @@ module Galaxy
       end
 
       class << self
-        def current_report
-          @@current_report ||= DiagnosticsReportBuilder.new
+        def current_report(folder_name = "diagnostics_report")
+          @@current_report ||= DiagnosticsReportBuilder.new(folder_name)
         end
 
-        def new_report
-          @@current_report = DiagnosticsReportBuilder.new
+        def new_report(folder_name = "diagnostics_report")
+          @@current_report = DiagnosticsReportBuilder.new(folder_name)
         end
       end
 
@@ -63,12 +67,12 @@ module Galaxy
         unless @folder_name
           cleanup_old_folders
 
-          if Dir.exists?(Rails.root.join("diagnostics_report/"))
-            FileUtils.mv Rails.root.join("diagnostics_report/"),
-                         Rails.root.join("diagnostics_report_#{DateTime.now.strftime("%Y_%m_%d_%H_%M_%S")}/")
+          if Dir.exists?(Rails.root.join("#{@base_folder_name}/"))
+            FileUtils.mv Rails.root.join("#{@base_folder_name}/"),
+                         Rails.root.join("#{@base_folder_name}_#{DateTime.now.strftime("%Y_%m_%d_%H_%M_%S")}/")
           end
 
-          @folder_name = Rails.root.join("diagnostics_report/")
+          @folder_name = Rails.root.join("#{@base_folder_name}/")
           FileUtils.mkdir_p @folder_name
           base_page
         end
@@ -80,7 +84,7 @@ module Galaxy
       # so it occasionally cleans up old folders so they don't get
       # too out of hand...
       def cleanup_old_folders
-        old_directories = Dir[Rails.root.join("diagnostics_report_*")].each { |dir| Dir.exists?(dir) ? dir : nil }.compact
+        old_directories = Dir[Rails.root.join("#{@base_folder_name}_*")].each { |dir| Dir.exists?(dir) ? dir : nil }.compact
         if Array.wrap(old_directories).length > MAX_OLD_FOLDERS
           old_directories.each_with_index do |dir, index|
             return if index > old_directories.length - MAX_OLD_FOLDERS

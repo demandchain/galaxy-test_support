@@ -1,3 +1,4 @@
+require ::File.expand_path('capybara_diagnostics', File.dirname(__FILE__))
 require ::File.expand_path('diagnostics_report_builder', File.dirname(__FILE__))
 
 Spinach.hooks.on_failed_step do |step_data, exception, location, step_definitions|
@@ -31,3 +32,5 @@ end
 Spinach.hooks.after_run do |status|
   Galaxy::TestSupport::DiagnosticsReportBuilder.current_report.close_report
 end
+
+Galaxy::TestSupport::DiagnosticsReportBuilder.new_report
