@@ -2,11 +2,11 @@ require ::File.expand_path('capybara_diagnostics', File.dirname(__FILE__))
 require ::File.expand_path('diagnostics_report_builder', File.dirname(__FILE__))
 
 RSpec.configure do |config|
-  config.before(:all) do
+  config.before(:suite) do
     Galaxy::TestSupport::DiagnosticsReportBuilder.new_report("diagnostics_rspec_report")
   end
 
-  config.after(:all) do
+  config.after(:suite) do
     Galaxy::TestSupport::DiagnosticsReportBuilder.current_report("diagnostics_rspec_report").close_report
   end
 
