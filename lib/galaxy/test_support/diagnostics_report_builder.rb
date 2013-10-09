@@ -77,6 +77,7 @@ module Galaxy
                          File.join(index_folder_name, new_sub_dir)
 
             add_index_file "#{new_sub_dir}index.html"
+            add_index_file "../coverage/index.html"
           end
 
           cleanup_old_folders

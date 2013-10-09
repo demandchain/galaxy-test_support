@@ -28,22 +28,29 @@ RSpec.configure do |config|
           [:full_description, :location].each do |property|
             report_table.write_stats "#{property.to_s.humanize}:", @example.send(property)
           end
+
+          vars_report = Galaxy::TestSupport::DiagnosticsReportBuilder::ReportTable.new
+          self.instance_variable_names.each do |name|
+            unless ["@example", "@__memoized"].include? name
+              vars_report.write_stats name, self.instance_variable_get(name.to_sym).pretty_inspect
+            end
+          end
+          @__memoized.each do |name, value|
+            vars_report.write_stats name.to_s, value
+          end
+          @example.instance_variable_names.each do |name|
+            unless ["@example_group_instance", "@metadata"].include? name
+              vars_report.write_stats name, @example.instance_variable_get(name.to_sym).pretty_inspect
+            end
+          end
+          report_table.write_stats "Variables:", vars_report.full_table
+
           report_table.write_stats "Call stack:", report.formatted_trace(@example.metadata[:caller])
 
           if @example.exception
             report_table.write_stats "Exception:", @example.exception.to_s
             report_table.write_stats "Backtrace:", report.formatted_backtrace(@example.exception)
           end
-
-          report_table.write_stats "Random Seed:", @seed_value.to_s
-
-          vars_report = Galaxy::TestSupport::DiagnosticsReportBuilder::ReportTable.new
-          @example.instance_variable_names.each do |name|
-            unless ["@example_group_instance", "@metadata"].include? name
-              vars_report.write_stats name, @example.instance_variable_get(name.to_sym).pretty_inspect
-            end
-          end
-          report_table.write_stats "Instance Variables:", vars_report.full_table
         end
       end
 
