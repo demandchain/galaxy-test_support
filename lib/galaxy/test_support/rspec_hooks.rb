@@ -36,7 +36,7 @@ RSpec.configure do |config|
             end
           end
           @__memoized.each do |name, value|
-            vars_report.write_stats name.to_s, value
+            vars_report.write_stats name.to_s, value.pretty_inspect
           end
           @example.instance_variable_names.each do |name|
             unless ["@example_group_instance", "@metadata"].include? name
