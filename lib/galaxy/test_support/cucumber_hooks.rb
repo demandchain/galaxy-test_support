@@ -16,6 +16,12 @@ After do |scenario|
             vars_report.write_stats name, scenario.send(:instance_variable_get, name).pretty_inspect
           end
         end
+        self.instance_variable_names.each do |name|
+          unless ["@__cucumber_runtime", "@__natural_language", "@_rack_test_sessions", "@_rack_mock_sessions",
+                  "@integration_session"].include?(name)
+            vars_report.write_stats name, self.send(:instance_variable_get, name).pretty_inspect
+          end
+        end
         report_table.write_stats "Instance Variables:", vars_report.full_table
       end
     end
