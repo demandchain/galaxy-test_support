@@ -316,6 +316,14 @@ module Galaxy
 
         File.join(report_folder_name, "html_dump_#{dump_num}.html")
       end
+
+      def pretty_print_variable variable
+        begin
+          variable.pretty_inspect
+        rescue
+          variable.to_s
+        end
+      end
     end
   end
 end

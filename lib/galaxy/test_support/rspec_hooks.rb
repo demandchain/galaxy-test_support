@@ -1,5 +1,6 @@
 require ::File.expand_path('capybara_diagnostics', File.dirname(__FILE__))
 require ::File.expand_path('diagnostics_report_builder', File.dirname(__FILE__))
+require ::File.expand_path('configuration', File.dirname(__FILE__))
 
 RSpec.configure do |config|
   config.before(:suite) do
@@ -11,7 +12,9 @@ RSpec.configure do |config|
   end
 
   config.around(:each) do |example|
-    @seed_value = 100000000000000000000000000000000000000 + rand(899999999999999999999999999999999999999)
+    @seed_value = Galaxy::TestSupport::Configuration.rspec_seed ||
+        100000000000000000000000000000000000000 + rand(899999999999999999999999999999999999999)
+
     srand(@seed_value)
 
     example.run
@@ -31,16 +34,18 @@ RSpec.configure do |config|
 
           vars_report = Galaxy::TestSupport::DiagnosticsReportBuilder::ReportTable.new
           self.instance_variable_names.each do |name|
-            unless ["@example", "@__memoized"].include? name
-              vars_report.write_stats name, self.instance_variable_get(name.to_sym).pretty_inspect
+            unless ["@fixture_connections", "@example", "@__memoized"].include? name
+              vars_report.write_stats name, report.pretty_print_variable(self.instance_variable_get(name.to_sym))
             end
           end
-          @__memoized.each do |name, value|
-            vars_report.write_stats name.to_s, value.pretty_inspect
+          if @__memoized
+            @__memoized.each do |name, value|
+              vars_report.write_stats name.to_s, report.pretty_print_variable(value)
+            end
           end
           @example.instance_variable_names.each do |name|
             unless ["@example_group_instance", "@metadata"].include? name
-              vars_report.write_stats name, @example.instance_variable_get(name.to_sym).pretty_inspect
+              vars_report.write_stats name, report.pretty_print_variable(@example.instance_variable_get(name.to_sym))
             end
           end
           report_table.write_stats "Variables:", vars_report.full_table

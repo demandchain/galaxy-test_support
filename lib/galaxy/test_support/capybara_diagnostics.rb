@@ -389,7 +389,7 @@ module Galaxy
               element_report.write_stats "outterHTML", @test_object.evaluate_script("$(\"\##{element_id}\")[0].outerHTML")
             end
           end
-          element_report.write_stats "inspect", element.pretty_inspect
+          element_report.write_stats "inspect", report.pretty_print_variable(element)
 
           element_report.full_table
         end
