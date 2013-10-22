@@ -172,14 +172,14 @@ module Galaxy
           all_elements report_table
           report_table.write_stats "Total elements found:", all_elements.length
           all_elements.each_with_index do |element, element_index|
-            report_table.write "Element[#{element_index}]", analyze_report_element(element)
+            report_table.write_stats "Element[#{element_index}]", analyze_report_element(element, report_table)
           end
 
           if (all_elements.length != all_page_elements.length)
             all_other_elements = all_page_elements - all_elements
             report_table.write_stats "Total elements found elsewhere:", all_other_elements.length
             all_other_elements.each_with_index do |element, element_index|
-              report_table.write "Other Element[#{element_index}]", analyze_report_element(element)
+              report_table.write_stats "Other Element[#{element_index}]", analyze_report_element(element, report_table)
             end
           end
         end
@@ -357,7 +357,7 @@ module Galaxy
         end
 
         # Output any information we can easily obtain about a DOM element
-        def analyze_report_element(element)
+        def analyze_report_element(element, report_table)
           element_report = Galaxy::TestSupport::DiagnosticsReportBuilder::ReportTable.new
 
           #information from Capybara
@@ -389,8 +389,7 @@ module Galaxy
               element_report.write_stats "outterHTML", @test_object.evaluate_script("$(\"\##{element_id}\")[0].outerHTML")
             end
           end
-          element_report.write_stats "inspect", report.pretty_print_variable(element)
-
+          element_report.write_stats "inspect", Galaxy::TestSupport::DiagnosticsReportBuilder.pretty_print_variable(element)
           element_report.full_table
         end
 

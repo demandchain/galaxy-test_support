@@ -20,7 +20,7 @@ def debug_failed_step(failure_description, step_data, exception, location, step_
 
       vars_report = Galaxy::TestSupport::DiagnosticsReportBuilder::ReportTable.new
       step_definitions.instance_variable_names.each do |name|
-        vars_report.write_stats name, report.pretty_print_variable(step_definitions.send(:instance_variable_get, name))
+        vars_report.write_stats name, Galaxy::TestSupport::DiagnosticsReportBuilder.pretty_print_variable(step_definitions.send(:instance_variable_get, name))
       end
       report_table.write_stats "Instance Variables:", vars_report.full_table
     end

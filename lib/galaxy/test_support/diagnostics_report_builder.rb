@@ -9,7 +9,7 @@ module Galaxy
         if value.html_safe?
           value
         else
-          CGI::escapeHTML(value)
+          CGI::escapeHTML(value.to_s)
         end
       end
 
@@ -304,7 +304,7 @@ module Galaxy
       end
 
       def formatted_trace(backtrace_array)
-        backtrace_array.map { |value| CGI::escapeHTML(value) }.
+        backtrace_array.map { |value| CGI::escapeHTML(value.to_s) }.
             join("<br />").gsub(/(#{Rails.root})([^\:]*\:[^\:]*)/, "\\1 <b>\\2</b> ").html_safe
       end
 
@@ -317,7 +317,7 @@ module Galaxy
         File.join(report_folder_name, "html_dump_#{dump_num}.html")
       end
 
-      def pretty_print_variable variable
+      def self.pretty_print_variable variable
         begin
           variable.pretty_inspect
         rescue
