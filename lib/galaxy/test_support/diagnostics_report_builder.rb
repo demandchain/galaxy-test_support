@@ -26,7 +26,7 @@ module Galaxy
         end
 
         def open_table
-          @full_table << "<div style=\"display: table; width: 100%; \">"
+          @full_table << "<div class=\"test-support-table\">"
         end
 
         def close_table
@@ -35,9 +35,9 @@ module Galaxy
         end
 
         def write_stats label, value
-          @full_table << "<div style=\"display: table-row;\">"
-          @full_table << "<div style=\"display: table-cell; font-weight: bold; vertical-align: top;\">#{Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(label)}</div>"
-          @full_table << "<div style=\"display: table-cell;\">#{Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(value)}</div>"
+          @full_table << "<div class=\"test-support-row\">"
+          @full_table << "<div class=\"test-support-cell-label\">#{Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(label)}</div>"
+          @full_table << "<div class=\"test-support-cell-data\">#{Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(value)}</div>"
           @full_table << "</div>"
         end
 
@@ -58,10 +58,10 @@ module Galaxy
       end
 
       def close_report
-        unless File.exists?(report_page_name)
+        unless File.exists?(simple_report_page_name)
           base_page
           File.open(report_page_name, "a") do |write_file|
-            write_file.write %Q[<p>No Errors to report</p>]
+            write_file.write %Q[<p class=\"test-support-no-errors\">No Errors to report</p>]
             write_file.write "\n"
           end
         end
@@ -170,25 +170,48 @@ module Galaxy
         File.join(index_folder_name, "index.html")
       end
 
-      def report_page_name
+      def create_style_sheet(html_file_name)
+        css_name = File.join(File.dirname(html_file_name), "test-support.css")
+        unless (File.exists?(css_name))
+          FileAsset.asset("test-support.css").create_file(css_name)
+        end
+      end
+
+      def simple_report_page_name
         File.join(report_folder_name, "report_contents.html")
       end
 
+      def report_page_name
+        page_name = simple_report_page_name
+        unless (File.exists?(page_name))
+          FileAsset.asset("report_contents.html").create_file(page_name)
+        end
+        create_style_sheet(page_name)
+        page_name
+      end
+
       def index_report_page_name
-        File.join(index_folder_name, "report_contents.html")
+        page_name = File.join(index_folder_name, "report_contents.html")
+        unless (File.exists?(page_name))
+          FileAsset.asset("report_contents.html").create_file(page_name)
+        end
+        create_style_sheet(page_name)
+        page_name
       end
 
       def base_page()
         unless File.exists?(base_page_name)
-          FileAsset.asset("index.html").create_file(base_page_name)
+          FileAsset.asset("base.html").create_file(base_page_name)
           add_index_file "#{@base_folder_name}/index.html"
         end
+        create_style_sheet(base_page_name)
       end
 
       def index_page()
         unless File.exists?(index_page_name)
           FileAsset.asset("index.html").create_file(index_page_name)
         end
+        create_style_sheet(index_page_name)
       end
 
       def index_entry(file_name)
@@ -246,9 +269,9 @@ module Galaxy
       def within_section(section_text, &block)
         begin
           File.open(report_page_name, "a") do |write_file|
-            write_file.write "<p>#{Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(section_text)}</p>"
+            write_file.write "<p class=\"test-support-section-label\">#{Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(section_text)}</p>"
             write_file.write "\n"
-            write_file.write "<div>"
+            write_file.write "<div class=\"test-support-section\">"
             write_file.write "\n"
           end
           block.yield self
@@ -284,11 +307,11 @@ module Galaxy
 
         FileUtils.mv image_file_name, dest_file_name
 
-        "<img src=\"#{File.basename(dest_file_name)}\" />".html_safe
+        "<img class=\"test-support-section-image\" src=\"#{File.basename(dest_file_name)}\" />".html_safe
       end
 
       def page_dump(page_html)
-        "<textarea style=\"width: 100%;\" rows=\"20\">#{Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(page_html)}</textarea>".html_safe
+        "<textarea class=\"test-support-page-dump\">#{Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(page_html)}</textarea>".html_safe
       end
 
       def page_link(page_html)
@@ -296,7 +319,7 @@ module Galaxy
         File.open(dump_file_name, "w") do |dump_file|
           dump_file.write page_html
         end
-        "<iframe src=\"#{dump_file_name}\" style=\"width: 100%; height: 500px;\"></iframe>".html_safe
+        "<iframe src=\"#{File.basename(dump_file_name)}\" class=\"test-support-sample-frame\"></iframe>".html_safe
       end
 
       def formatted_backtrace(error)
@@ -305,7 +328,7 @@ module Galaxy
 
       def formatted_trace(backtrace_array)
         backtrace_array.map { |value| CGI::escapeHTML(value.to_s) }.
-            join("<br />").gsub(/(#{Rails.root})([^\:]*\:[^\:]*)/, "\\1 <b>\\2</b> ").html_safe
+            join("<br />").gsub(/(#{Rails.root}|\.\/)([^\:]*\:[^\:]*)/, "\\1 <span class=\"test-support-app-file\">\\2</span> ").html_safe
       end
 
       def html_dump_file_name
