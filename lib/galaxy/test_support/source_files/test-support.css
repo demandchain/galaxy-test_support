@@ -1,3 +1,8 @@
+.hidden
+{
+  display: none;
+}
+
 .base-body
 {
   margin: 0px;
@@ -40,11 +45,18 @@
   background-color: lightgoldenrodyellow;
 }
 
-.test-support-cell-label
+.test-support-cell-expand,
+.test-support-cell-label,
+.test-support-cell-data-more
 {
   display:        table-cell;
   font-weight:    bold;
   vertical-align: top;
+}
+
+.test-support-cell-expand a
+{
+  margin-right: 5px;
 }
 
 .test-support-cell-data
@@ -79,4 +91,15 @@
 {
   font-weight: bold;
   color:       blue;
+}
+
+.truncated-text
+{
+  height:   4em;
+  overflow: hidden;
+}
+
+.hide-contents pre
+{
+  margin-top: 0px
 }
