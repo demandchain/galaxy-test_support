@@ -89,8 +89,10 @@
 
 .test-support-app-file
 {
-  font-weight: bold;
-  color:       blue;
+  font-weight:     bold;
+  color:           blue;
+  text-decoration: underline;
+  cursor:          hand;
 }
 
 .truncated-text
