@@ -3,7 +3,7 @@ module Galaxy
     class FileAsset
       class << self
         def asset(asset_name)
-          @@asset_list ||= {}
+          @@asset_list                    ||= {}
           @@asset_list[asset_name.to_sym] = FileAsset.new(asset_name) unless @@asset_list[asset_name.to_sym]
           @@asset_list[asset_name.to_sym]
         end
@@ -15,6 +15,12 @@ module Galaxy
 
       def body=(asset_body)
         @asset_body = asset_body
+      end
+
+      def add_file(output_location)
+        unless (File.exists?(output_location))
+          create_file(output_location)
+        end
       end
 
       def create_file(output_location)

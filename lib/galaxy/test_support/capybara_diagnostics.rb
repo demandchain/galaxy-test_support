@@ -17,8 +17,8 @@ module Galaxy
               report_table.write_stats "Page URL:", my_page.current_url if my_page.try(:current_url)
 
               if my_page.respond_to?(:html)
-                report_table.write_stats "Page HTML:", report.page_dump(my_page.html)
-                report_table.write_stats "Page:", report.page_link(my_page.html)
+                report_table.write_stats "Page HTML:", report.page_dump(my_page.html), prevent_shrink: true
+                report_table.write_stats "Page:", report.page_link(my_page.html), prevent_shrink: true
               end
 
               browser = my_page.try(:driver)
@@ -38,7 +38,7 @@ module Galaxy
 
                 begin
                   browser.save_screenshot(filename)
-                  report_table.write_stats "Screen Shot:", report.image_link(filename)
+                  report_table.write_stats "Screen Shot:", report.image_link(filename), prevent_shrink: true
                 rescue Capybara::NotSupportedByDriverError
                   report_table.write_stats "Screen Shot:", "Could not save screenshot."
                 end
@@ -149,7 +149,7 @@ module Galaxy
             end
           end
 
-          report_table.write_stats "Args:", args_table.full_table
+          report_table.write_stats "Args:", args_table.full_table, prevent_shrink: true
 
 
           if Capybara.current_session.driver.respond_to? :evaluate_script
@@ -172,14 +172,14 @@ module Galaxy
           all_elements report_table
           report_table.write_stats "Total elements found:", all_elements.length
           all_elements.each_with_index do |element, element_index|
-            report_table.write_stats "Element[#{element_index}]", analyze_report_element(element, report_table)
+            report_table.write_stats "Element[#{element_index}]", analyze_report_element(element, report_table), prevent_shrink: true
           end
 
           if (all_elements.length != all_page_elements.length)
             all_other_elements = all_page_elements - all_elements
             report_table.write_stats "Total elements found elsewhere:", all_other_elements.length
             all_other_elements.each_with_index do |element, element_index|
-              report_table.write_stats "Other Element[#{element_index}]", analyze_report_element(element, report_table)
+              report_table.write_stats "Other Element[#{element_index}]", analyze_report_element(element, report_table), prevent_shrink: true
             end
           end
         end
@@ -279,7 +279,7 @@ module Galaxy
               sub_report  = Galaxy::TestSupport::DiagnosticsReportBuilder::ReportTable.new
               from_within.output_basic_details sub_report
               from_within.output_finder_details sub_report
-              report_table.write_stats "Within block:", sub_report.full_table
+              report_table.write_stats "Within block:", sub_report.full_table, prevent_shrink: true
 
               from_element = from_within.found_element
 

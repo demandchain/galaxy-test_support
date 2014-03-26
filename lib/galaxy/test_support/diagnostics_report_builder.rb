@@ -6,11 +6,7 @@ module Galaxy
       MAX_OLD_FOLDERS = 5
 
       def self.escape_string value
-        if value.html_safe?
-          value
-        else
-          CGI::escapeHTML(value.to_s)
-        end
+        "".html_safe + value.to_s
       end
 
       def initialize(folder_name = "diagnostics_report")
@@ -34,10 +30,24 @@ module Galaxy
           @table_closed = true
         end
 
-        def write_stats label, value
+        def write_stats label, value, options = {}
           @full_table << "<div class=\"test-support-row\">"
           @full_table << "<div class=\"test-support-cell-label\">#{Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(label)}</div>"
-          @full_table << "<div class=\"test-support-cell-data\">#{Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(value)}</div>"
+          @full_table << "<div class=\"test-support-cell-expand\">"
+          unless options[:prevent_shrink]
+            @full_table << "<div class=\"hidden\"><a href=\"#\"><img src=\"expand.gif\"></a></div>"
+          end
+          @full_table << "</div>"
+          @full_table << "<div class=\"test-support-cell-data\">"
+          unless options[:prevent_shrink]
+            @full_table << "<div class=\"hide-contents\">"
+          end
+          @full_table << "<pre><code>#{Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(value)}</code></pre>"
+          unless options[:prevent_shrink]
+            @full_table << "</div>"
+            @full_table << "<div class=\"test-support-cell-more hidden\"><a href=\"#\">more...</a></div>"
+          end
+          @full_table << "</div>"
           @full_table << "</div>"
         end
 
@@ -172,9 +182,7 @@ module Galaxy
 
       def create_style_sheet(html_file_name)
         css_name = File.join(File.dirname(html_file_name), "test-support.css")
-        unless (File.exists?(css_name))
-          FileAsset.asset("test-support.css").create_file(css_name)
-        end
+        FileAsset.asset("test-support.css").add_file(css_name)
       end
 
       def simple_report_page_name
@@ -183,18 +191,23 @@ module Galaxy
 
       def report_page_name
         page_name = simple_report_page_name
-        unless (File.exists?(page_name))
-          FileAsset.asset("report_contents.html").create_file(page_name)
-        end
-        create_style_sheet(page_name)
+        FileAsset.asset("report_contents.html").add_file(page_name)
+        report_support_files page_name
         page_name
+      end
+
+      def report_support_files(page_name)
+        create_style_sheet(page_name)
+
+        support_folder_name = File.dirname(page_name)
+        FileAsset.asset("collapse.gif").add_file(File.join(support_folder_name, "collapse.gif"))
+        FileAsset.asset("expand.gif").add_file(File.join(support_folder_name, "expand.gif"))
+        FileAsset.asset("more_info.js").add_file(File.join(support_folder_name, "more_info.js"))
       end
 
       def index_report_page_name
         page_name = File.join(index_folder_name, "report_contents.html")
-        unless (File.exists?(page_name))
-          FileAsset.asset("report_contents.html").create_file(page_name)
-        end
+        FileAsset.asset("report_contents.html").add_file(page_name)
         create_style_sheet(page_name)
         page_name
       end
@@ -208,9 +221,7 @@ module Galaxy
       end
 
       def index_page()
-        unless File.exists?(index_page_name)
-          FileAsset.asset("index.html").create_file(index_page_name)
-        end
+        FileAsset.asset("index.html").add_file(index_page_name)
         create_style_sheet(index_page_name)
       end
 
@@ -327,7 +338,7 @@ module Galaxy
       end
 
       def formatted_trace(backtrace_array)
-        backtrace_array.map { |value| CGI::escapeHTML(value.to_s) }.
+        backtrace_array.map { |value| Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(value) }.
             join("<br />").gsub(/(#{Rails.root}|\.\/)([^\:]*\:[^\:]*)/, "\\1 <span class=\"test-support-app-file\">\\2</span> ").html_safe
       end
 
