@@ -339,7 +339,8 @@ module Galaxy
 
       def formatted_trace(backtrace_array)
         backtrace_array.map { |value| Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(value) }.
-            join("<br />").gsub(/(#{Rails.root}|\.\/)([^\:]*\:[^\:]*)/, "\\1 <span class=\"test-support-app-file\">\\2</span> ").html_safe
+            join("<br />").gsub(/(#{Rails.root}|\.\/|^features|^spec)([^\:\n]*\:[^\:\n ]*)/,
+                                "\\1 <span class=\"test-support-app-file\">\\2</span> ").html_safe
       end
 
       def html_dump_file_name
