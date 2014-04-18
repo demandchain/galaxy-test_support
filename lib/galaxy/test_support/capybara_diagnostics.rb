@@ -312,7 +312,7 @@ module Galaxy
           unless @search_args
             @search_args = @args.clone
             if @search_args.last.is_a? Hash
-              @options = test_args.pop
+              @options = @search_args.pop
             end
             if guessed_types.length > 0 && @search_args[0] != guessed_types[0]
               @search_args.insert(0, guessed_types[0])
