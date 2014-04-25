@@ -13,15 +13,27 @@ After do |scenario|
         vars_report = Galaxy::TestSupport::DiagnosticsReportBuilder::ReportTable.new
         scenario.instance_variable_names.each do |name|
           unless ["@background", "@feature", "@current_visitor", "@raw_steps"].include?(name)
-            vars_report.write_stats name, Galaxy::TestSupport::DiagnosticsReportBuilder.pretty_print_variable(scenario.send(:instance_variable_get, name))
+            vars_report.write_stats name, Galaxy::TestSupport::DiagnosticsReportBuilder.pretty_print_variable(
+                scenario.send(:instance_variable_get, name))
           end
         end
+
+        [:@comment, :@keword, :@description, :@gherkin_statement, :@location, :@tags, :@title].each do |var_name|
+          vars_report.write_stats var_name, Galaxy::TestSupport::DiagnosticsReportBuilder.pretty_print_variable(
+              scenario.feature.instance_variable_get(var_name))
+        end
+
+        vars_report.write_stats "@configuration",
+                                Galaxy::TestSupport::DiagnosticsReportBuilder.pretty_print_variable(
+                                    scenario.instance_variable_get(:@current_visitor).configuration)
+
         self.instance_variable_names.each do |name|
           unless ["@__cucumber_runtime", "@__natural_language", "@_rack_test_sessions", "@_rack_mock_sessions",
-                 "@integration_session"].include?(name)
+                  "@integration_session"].include?(name)
             vars_report.write_stats name, Galaxy::TestSupport::DiagnosticsReportBuilder.pretty_print_variable(self.send(:instance_variable_get, name))
           end
         end
+
         report_table.write_stats "Instance Variables:", vars_report.full_table, prevent_shrink: true
       end
     end

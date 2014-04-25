@@ -338,9 +338,16 @@ module Galaxy
       end
 
       def formatted_trace(backtrace_array)
-        backtrace_array.map { |value| Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(value) }.
-            join("<br />").gsub(/(#{Rails.root}|\.\/|^features|^spec)([^\:\n]*\:[^\:\n ]*)/,
-                                "\\1 <span class=\"test-support-app-file\">\\2</span> ").html_safe
+        Galaxy::TestSupport::DiagnosticsReportBuilder.format_code_refs(
+            backtrace_array.map { |value| Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string (value) }.
+                join("<br />\n").html_safe)
+      end
+
+      def self.format_code_refs(some_text)
+        safe_text = Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(some_text)
+
+        safe_text.gsub(/(#{Rails.root}|\.\/|(?=(?:^features|^spec)\/))([^\:\n]*\:[^\:\n ]*)/,
+                       "\\1 <span class=\"test-support-app-file\">\\2\\3</span> ").html_safe
       end
 
       def html_dump_file_name
@@ -354,9 +361,9 @@ module Galaxy
 
       def self.pretty_print_variable variable
         begin
-          variable.pretty_inspect
+          Galaxy::TestSupport::DiagnosticsReportBuilder.format_code_refs(variable.pretty_inspect)
         rescue
-          variable.to_s
+          Galaxy::TestSupport::DiagnosticsReportBuilder.format_code_refs(variable.to_s)
         end
       end
     end
