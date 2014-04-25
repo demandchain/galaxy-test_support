@@ -165,7 +165,7 @@ module Galaxy
         # This may help identify why the right one isn't being found.
         def output_finder_details report_table
           if guessed_types.length > 1
-            report_table.write_stats "Alternate possible types:", guessed_types.join("<br />").html_safe
+            report_table.write_stats "Alternate possible types:", guessed_types.join("<br />\n").html_safe
           end
 
           all_page_elements = Capybara.current_session.all(*search_args, visible: false).to_a
