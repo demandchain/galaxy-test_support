@@ -116,22 +116,36 @@ module Galaxy
           begin
             @test_object.send(@function_name, *@args)
           rescue
-            DiagnosticsReportBuilder.current_report.within_section("An error occurred while processing \"#{@function_name.to_s}\":") do |report|
-              report.within_table do |report_table|
-                report_table.write_stats "Error:", $!.to_s
-                report_table.write_stats "Backtrace:", report.formatted_backtrace($!)
-                output_basic_details report_table
-                output_finder_details report_table
-
-                return @return_value if retry_action_with_found_element report_table
+            generate_diagnostics_report "An error occurred while processing \"#{@function_name.to_s}\":", $! do |report_table|
+              if retry_action_with_found_element report_table
+                @return_value
+              else
                 if alternate_action_with_found_element report_table
                   Galaxy::TestSupport::CapybaraDiagnostics.output_page_details "#{DateTime.now.strftime("%Y_%m_%d")}_failure_#{SecureRandom.uuid}.png"
-                  return @return_value
+                  @return_value
+                else
+                  raise $!
                 end
               end
             end
+          end
+        end
 
-            raise $!
+        def generate_diagnostics_report(message, error = nil, &block)
+          DiagnosticsReportBuilder.current_report.within_section(message) do |report|
+            report.within_table do |report_table|
+              if (error)
+                report_table.write_stats "Error:", $!.to_s
+                report_table.write_stats "Backtrace:", report.formatted_backtrace($!)
+              end
+
+              output_basic_details report_table
+              output_finder_details report_table
+
+              if block
+                block.yield(report_table)
+              end
+            end
           end
         end
 
