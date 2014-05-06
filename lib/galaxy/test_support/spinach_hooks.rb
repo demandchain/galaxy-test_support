@@ -1,5 +1,6 @@
 require ::File.expand_path('capybara_diagnostics', File.dirname(__FILE__))
 require ::File.expand_path('diagnostics_report_builder', File.dirname(__FILE__))
+require ::File.expand_path('log_capture', File.dirname(__FILE__))
 
 Spinach.hooks.before_scenario do |scenario, step_definitions|
   @running_scenario = scenario
@@ -40,6 +41,10 @@ def debug_failed_step(failure_description, step_data, exception, location, step_
         vars_report.write_stats name, Galaxy::TestSupport::DiagnosticsReportBuilder.pretty_print_variable(step_definitions.send(:instance_variable_get, name))
       end
       report_table.write_stats "Instance Variables:", vars_report.full_table, prevent_shrink: true
+
+      if Galaxy::TestSupport::Configuration.grab_logs
+        Galaxy::TestSupport::LogCapture.capture_logs report_table
+      end
     end
   end
 

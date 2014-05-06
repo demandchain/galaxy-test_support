@@ -1,6 +1,7 @@
 require ::File.expand_path('capybara_diagnostics', File.dirname(__FILE__))
 require ::File.expand_path('diagnostics_report_builder', File.dirname(__FILE__))
 require ::File.expand_path('configuration', File.dirname(__FILE__))
+require ::File.expand_path('log_capture', File.dirname(__FILE__))
 
 RSpec.configure do |config|
   config.before(:suite) do
@@ -69,6 +70,10 @@ RSpec.configure do |config|
           if @example.exception
             report_table.write_stats "Exception:", @example.exception.to_s
             report_table.write_stats "Backtrace:", report.formatted_backtrace(@example.exception)
+          end
+
+          if Galaxy::TestSupport::Configuration.grab_logs
+            Galaxy::TestSupport::LogCapture.capture_logs report_table
           end
         end
       end
