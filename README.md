@@ -51,9 +51,11 @@ Selenium web driver which can cause it to have false negatives.
 To address both of these issues, this Gem provides the function:  `test_finder`
 
 To call this function on a finder function:
+
     sample_function_name sample_param_1, sample_param_2, sample_param_3...
 
 You would make the following call:
+
     Galaxy::TestSupport::CapybaraDiagnostics.test_finder self, :sample_function_name, sample_param_1, sample_param_2, sample_param_3...
 
 The test_finder function outputs all results into the same report as the automated step failure report.  It will
@@ -74,6 +76,38 @@ fixed.  The good news is that if Selenium is fixed, it will not be called.
 
 Most issues will probably be able to be resolved analyzing the HTML dumped using the automatic hooks.  Use the
 test_finder function only if it is really needed.
+
+#### Element diagnosis
+
+Sometimes you aren't having a problem with the finder, yet something isn't working.  At times like that, it may be
+nice to be able to see information about an element on the page.  To do this, you can output the finder analysis
+directly:
+
+    finder_info = Galaxy::TestSupport::CapybaraDiagnostics::FindAction.new(parent_object, :find, "#options")
+    finder_info.generate_diagnostics_report "A label for the report"
+    found_object = finder_info.run
+
+### Logs
+
+The system will try to automatically capture the last 500 lines of the log file when an exception occurs.  You can
+configure the log capture process as follows:
+
+To turn off the automatic grabbing of logs (default is true):
+
+    Galaxy::TestSupport::Configuration.grab_logs = false
+
+To adjust the number of lines fetched (default is 500 lines):
+
+    Galaxy::TestSupport::Configuration.default_num_lines = 500
+
+To add other log files:
+
+    Galaxy::TestSupport::Configuration.add_log_file("..\other_project\logs\development.log", num_lines: 500)
+
+The first parameter is the relative path of the log file from the project root.  You may also specify the
+following options:
+
+* num_lines - defaults to default_num_lines
 
 ## Development
 
