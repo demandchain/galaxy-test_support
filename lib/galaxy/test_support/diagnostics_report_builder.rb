@@ -30,6 +30,18 @@ module Galaxy
           @table_closed = true
         end
 
+        # Writes information to the table.
+        # Parameters:
+        #   label             - The label for the information.
+        #                       Should be short.  Will be made bold and the cell will be shrunk.
+        #   value             - The value for the information.
+        #                       If the value is very wide, the cell will expand to show it.
+        #                       If the value is very tall, an expansion option will be provided, and the
+        #                       cell will truncate the value otherwise.
+        #   options:
+        #     prevent_shrink  - default - false
+        #                       If set, the cell will not be truncated if it is too tall, instead the cell will show
+        #                       the full contents.
         def write_stats label, value, options = {}
           @full_table << "<div class=\"test-support-row\">"
           @full_table << "<div class=\"test-support-cell-label\">#{Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(label)}</div>"
