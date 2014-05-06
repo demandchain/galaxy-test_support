@@ -34,8 +34,22 @@ RSpec.configure do |config|
 
           vars_report = Galaxy::TestSupport::DiagnosticsReportBuilder::ReportTable.new
           self.instance_variable_names.each do |name|
-            unless ["@fixture_connections", "@example", "@__memoized"].include? name
-              vars_report.write_stats name, Galaxy::TestSupport::DiagnosticsReportBuilder.pretty_print_variable(self.instance_variable_get(name.to_sym))
+            unless ["@fixture_connections",
+                    "@example",
+                    "@__memoized"].include? name
+            if ["@response", "@controller", "@request"].include? name
+              sub_vars_report = Galaxy::TestSupport::DiagnosticsReportBuilder::ReportTable.new
+              sub_object = self.instance_variable_get(name.to_sym)
+              sub_object.instance_variable_names.each do |sub_name|
+                sub_vars_report.write_stats sub_name, Galaxy::TestSupport::DiagnosticsReportBuilder.pretty_print_variable(
+                    sub_object.instance_variable_get(sub_name.to_sym))
+              end
+
+              vars_report.write_stats name, sub_vars_report.full_table, prevent_shrink: true
+            else
+              vars_report.write_stats name, Galaxy::TestSupport::DiagnosticsReportBuilder.pretty_print_variable(
+                  self.instance_variable_get(name.to_sym))
+            end
             end
           end
           if @__memoized
