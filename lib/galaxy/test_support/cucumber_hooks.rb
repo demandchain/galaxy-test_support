@@ -1,5 +1,6 @@
 require ::File.expand_path('capybara_diagnostics', File.dirname(__FILE__))
 require ::File.expand_path('diagnostics_report_builder', File.dirname(__FILE__))
+require ::File.expand_path('configuration', File.dirname(__FILE__))
 require ::File.expand_path('log_capture', File.dirname(__FILE__))
 
 After do |scenario|
@@ -36,11 +37,11 @@ After do |scenario|
         end
 
         report_table.write_stats "Instance Variables:", vars_report.full_table, prevent_shrink: true
-      end
-    end
 
-    if Galaxy::TestSupport::Configuration.grab_logs
-      Galaxy::TestSupport::LogCapture.capture_logs report_table
+        if Galaxy::TestSupport::Configuration.grab_logs
+          Galaxy::TestSupport::LogCapture.capture_logs report_table
+        end
+      end
     end
 
     Galaxy::TestSupport::CapybaraDiagnostics.output_page_details(scenario.file_colon_line)

@@ -1,3 +1,4 @@
+require ::File.expand_path('configuration', File.dirname(__FILE__))
 require ::File.expand_path('diagnostics_report_builder', File.dirname(__FILE__))
 
 module Galaxy
@@ -8,9 +9,7 @@ module Galaxy
 
         # This function will capture the logs and output them to the report
         def capture_logs(report_table = nil)
-          use_report_table = report_table
-
-          if use_report_table
+          if report_table
             log_folder = Rails.root.to_s
             if (log_folder =~ /\/features\/?$/ || log_folder =~ /\/spec\/?$/)
               log_folder = File.join(log_folder, "../")
@@ -19,8 +18,8 @@ module Galaxy
             default_log_file = "log/#{Rails.env.to_s}.log"
 
             output_log_file(report_table, File.join(log_folder, default_log_file))
-            Galaxy::TestSupport::Configuration.user_log_files.each do |relatvive_log_file|
-              output_log_file(report_table, File.join(log_folder, relatvive_log_file))
+            Galaxy::TestSupport::Configuration.user_log_files.each do |relatvive_log_file, options|
+              output_log_file(report_table, File.join(log_folder, relatvive_log_file), options)
             end
           else
             Galaxy::TestSupport::DiagnosticsReportBuilder.current_report.within_section("Log Dump:") do |report|
@@ -29,6 +28,14 @@ module Galaxy
               end
             end
           end
+        end
+
+        def highlight_log_output(log_text)
+          output_text = Galaxy::TestSupport::DiagnosticsReportBuilder.format_code_refs(log_text)
+          output_text = output_text.gsub(/^(Completed 4.*)$/, "<span class=\"completed-error\">\\1<\/span>")
+          output_text = output_text.gsub(/^(Completed [^4].*)$/, "<span class=\"completed-other\">\\1<\/span>")
+
+          output_text.html_safe
         end
 
         # A cheap and sleazy tail function, but it should work...
@@ -66,8 +73,8 @@ module Galaxy
               end
 
               report_table.write_stats File.basename(log_file_name),
-                                       Galaxy::TestSupport::DiagnosticsReportBuilder.
-                                           format_code_refs("log_file - #{log_file_name}:#{file_size}\n#{log_buffer.join("\n")}")
+                                       Galaxy::TestSupport::LogCapture.highlight_log_output(
+                                           "log_file - #{log_file_name}:#{file_size}\n#{log_buffer.join("\n")}")
 
               output_file = true
             end

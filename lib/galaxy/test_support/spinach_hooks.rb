@@ -1,5 +1,6 @@
 require ::File.expand_path('capybara_diagnostics', File.dirname(__FILE__))
 require ::File.expand_path('diagnostics_report_builder', File.dirname(__FILE__))
+require ::File.expand_path('configuration', File.dirname(__FILE__))
 require ::File.expand_path('log_capture', File.dirname(__FILE__))
 
 Spinach.hooks.before_scenario do |scenario, step_definitions|
