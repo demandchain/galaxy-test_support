@@ -106,3 +106,15 @@
 {
   margin-top: 0px
 }
+
+.completed-other
+{
+  font-weight: bold;
+  color: green
+}
+
+.completed-error
+{
+  font-weight: bold;
+  color: red
+}

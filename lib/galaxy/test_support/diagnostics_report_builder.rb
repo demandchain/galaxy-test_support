@@ -54,6 +54,7 @@ module Galaxy
           unless options[:prevent_shrink]
             @full_table << "<div class=\"hide-contents\">"
           end
+
           @full_table << "<pre><code>#{Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(value)}</code></pre>"
           unless options[:prevent_shrink]
             @full_table << "</div>"
@@ -82,7 +83,7 @@ module Galaxy
       def close_report
         unless File.exists?(simple_report_page_name)
           base_page
-          File.open(report_page_name, "a") do |write_file|
+          File.open(report_page_name, "a:UTF-8") do |write_file|
             write_file.write %Q[<p class=\"test-support-no-errors\">No Errors to report</p>]
             write_file.write "\n"
           end
@@ -245,7 +246,7 @@ module Galaxy
         index_page
         indexes = []
         if File.exists?(index_report_page_name)
-          File.open(index_report_page_name, "r") do |read_file|
+          File.open(index_report_page_name, "r:UTF-8") do |read_file|
             indexes = read_file.readlines
           end
         end
@@ -259,9 +260,9 @@ module Galaxy
         end
         indexes.sort!
 
-        File.open(index_report_page_name, "w") do |write_file|
+        File.open(index_report_page_name, "w:UTF-8") do |write_file|
           indexes.each do |index_line|
-            write_file.write index_line
+            write_file.write index_line.to_s.force_encoding("UTF-8")
           end
         end
       end
@@ -270,7 +271,7 @@ module Galaxy
         index_page
         indexes = []
         if File.exists?(index_report_page_name)
-          File.open(index_report_page_name, "r") do |read_file|
+          File.open(index_report_page_name, "r:UTF-8") do |read_file|
             indexes = read_file.readlines
           end
         end
@@ -282,24 +283,25 @@ module Galaxy
         end
         indexes.sort!
 
-        File.open(index_report_page_name, "w") do |write_file|
+        File.open(index_report_page_name, "w:UTF-8") do |write_file|
           indexes.each do |index_line|
-            write_file.write index_line
+            write_file.write index_line.to_s.force_encoding("UTF-8")
           end
         end
       end
 
       def within_section(section_text, &block)
         begin
-          File.open(report_page_name, "a") do |write_file|
-            write_file.write "<p class=\"test-support-section-label\">#{Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(section_text)}</p>"
+          File.open(report_page_name, "a:UTF-8") do |write_file|
+            write_file.write "<p class=\"test-support-section-label\">#{Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(section_text)}</p>".
+                                 force_encoding("UTF-8")
             write_file.write "\n"
             write_file.write "<div class=\"test-support-section\">"
             write_file.write "\n"
           end
           block.yield self
         ensure
-          File.open(report_page_name, "a") do |write_file|
+          File.open(report_page_name, "a:UTF-8") do |write_file|
             write_file.write "<div/>"
             write_file.write "\n"
           end
@@ -311,8 +313,8 @@ module Galaxy
           report_table = ReportTable.new
           block.yield report_table
         ensure
-          File.open(report_page_name, "a") do |write_file|
-            write_file.write report_table.full_table
+          File.open(report_page_name, "a:UTF-8") do |write_file|
+            write_file.write report_table.full_table.force_encoding("UTF-8")
           end
         end
       end
@@ -339,8 +341,8 @@ module Galaxy
 
       def page_link(page_html)
         dump_file_name = html_dump_file_name
-        File.open(dump_file_name, "w") do |dump_file|
-          dump_file.write page_html
+        File.open(dump_file_name, "w:UTF-8") do |dump_file|
+          dump_file.write page_html.to_s.force_encoding("UTF-8")
         end
         "<iframe src=\"#{File.basename(dump_file_name)}\" class=\"test-support-sample-frame\"></iframe>".html_safe
       end
