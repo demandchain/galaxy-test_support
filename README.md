@@ -141,8 +141,7 @@ different report configurations:
 
 * :rspec
 * :cucumber
-* ~~:spinach~~
-* ~~:capybara~~
+* :spinach
 
 ConfiguredReport outputs an error report based on symbol based configurations
 
@@ -221,6 +220,11 @@ self.instance_variables can be used to output all instance variables.
 if self.instance_variables is placed in the expand option, the instance variables and their values will be placed in
 a sub-table. Unlike normal items, if there are no instance variables, this will not generate an error.
 
+
+Each report has a different set of objects that they pass into the report:
+* rspec - self
+* cucumber - self, scenario
+* spinach - failure_description, step_data, exception, location, step_definitions, running_scenario
 
 ## Contributing
 

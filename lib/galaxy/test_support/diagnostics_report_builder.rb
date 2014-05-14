@@ -7,7 +7,7 @@ module Galaxy
 
       class << self
         def escape_string value
-          "".html_safe + value.to_s
+          "".html_safe + value.to_s.force_encoding("UTF-8")
         end
 
         def format_code_refs(some_text)

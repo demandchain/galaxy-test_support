@@ -46,7 +46,8 @@ module Galaxy
                                                   :scenario__feature__instance_variables__location,
                                                   :scenario__instance_variables__title,
                                                   :scenario__instance_variables__location,
-                                                  :scenario__exception__to_s
+                                                  :scenario__exception__to_s,
+                                                  :scenario__exception__backtrace
                                               ],
                         more_info_fields:     [
                                                   :scenario__instance_variables,
@@ -78,6 +79,41 @@ module Galaxy
                                                   :self__instance_variables___rack_test_sessions,
                                                   :self__instance_variables___rack_mock_sessions,
                                                   :self__instance_variables__integration_session
+                                              ]
+                    ),
+          spinach:  Galaxy::TestSupport::ConfiguredReport.new(
+                        min_fields:           [
+                                                  :failure_description,
+                                                  :running_scenario__instance_variables__feature__name,
+                                                  :running_scenario__instance_variables__name,
+                                                  :running_scenario__instance_variables__line,
+                                                  :step_data__name,
+                                                  :step_data__line,
+                                                  :exception__to_s,
+                                                  :exception__backtrace
+                                              ],
+                        more_info_fields:     [
+                                                  :running_scenario__instance_variables__feature__tags,
+                                                  :running_scenario__instance_variables,
+                                                  :step_data__instance_variables,
+                                                  :step_definitions__instance_variables,
+                                                  :logs,
+                                                  :capybara_diagnostics
+                                              ],
+                        expand_fields:        [
+                                                  :running_scenario__instance_variables,
+                                                  :step_data__instance_variables,
+                                                  :step_definitions__instance_variables
+                                              ],
+                        expand_inline_fields: [
+                                              ],
+                        exclude_fields:       [
+                                                  :running_scenario__instance_variables__feature,
+                                                  :step_data__scenario__instance_variables__feature,
+                                                  :running_scenario__instance_variables__name,
+                                                  :running_scenario__instance_variables__line,
+                                                  :step_data__name,
+                                                  :step_data__line
                                               ]
                     )
       }
