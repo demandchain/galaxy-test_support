@@ -1,10 +1,36 @@
 module Galaxy
   module TestSupport
     class Configuration
-      @@rspec_seed     = nil
-      @@user_log_files = {}
+      @@rspec_seed        = nil
+      @@user_log_files    = {}
       @@default_num_lines = 500
-      @@grab_logs      = true
+      @@grab_logs         = true
+
+      @@rspec_min_fields       = [
+          :example__full_description,
+          :example__location,
+          :example__exception,
+          :example__exception__backtrace
+      ]
+      @@rspec_more_info_fields = [
+          :self__instance_variable_names,
+          :example__instance_variable_names,
+          :example__callstack,
+          :logs,
+          :capybara_diagnostics
+      ]
+      @@rspec_exclude_fields   = [
+          :self__instance_variable_names__fixture_connections,
+          :self__instance_variable_names__example,
+          :example__instance_variable_names__example_group_instance,
+          :example__instance_variable_names__metadata
+      ]
+      @@rspec_expand_fields    = [
+          :self__instance_variable_names__response,
+          :self__instance_variable_names__controller,
+          :self__instance_variable_names__request,
+          :self__instance_variable_names____memoized
+      ]
 
       class << self
         # rspec_seed is the seed value used to seed the srand function at the start of a test
@@ -80,6 +106,144 @@ module Galaxy
         # NOTE:  You cannot remove the default log file.
         def remove_log_file(log_file_name)
           @@user_log_files.delete log_file_name
+        end
+
+        # I'm making the reports more configurable.
+        #
+        # Starting with rspec, you can specify what is exported
+        # in what order.
+        #
+        # There are 2 blocks of fields which can be exported:
+        #   * min_fields
+        #   * more_info_fields
+        #
+        # Anything which can be exported can be exported in either or both blocks.
+        #
+        # Simply specify an array of what fields to export, and those items will
+        # be exported as specified.
+        #
+        # To see a list of the options you have, there are 2 special calls you can
+        # make:
+        #   * rspec_report_list_all_fields
+        #   * rspec_report_list_all_exclude_fields
+        #
+        # There are some special fields which end with a ?.
+        # These fields allow you to specify sub-items which can be excluded or included
+        # explicitly.
+        #
+        # If excluded, when the parent object is exported wihtout an explicit included
+        # sub-item, all sub-items are exported, except for the excluded items.
+        #
+        # If an item has sub-items, and it supports the explicity inclusion of a sub-item,
+        # just the sub-item can be exported if specified.
+        #
+        # When exporting instance variabes, some instance variables can be exported as if they
+        # were a top-level item.  That is, instead of a pretty_inspect, the instance variables
+        # for those items are iterated, and excluded or exported just like normal instance varaibles.
+        #
+        # I know that this is poorly documented, and that there are a lot of things I could do to make
+        # it more generic, but this is a first pass, and I don't expect it to be used much except by me
+        # to setup the default export.
+        #
+        # As inspiration strikes, and needs arise, I will make updates.
+        #
+        # Otherwise, it may just stay as it is...
+        def rspec_report_min_fields()
+          Galaxy::TestSupport::Configuration.split_field_symbols(@@rspec_min_fields)
+        end
+
+        def rspec_report_min_fields=(value)
+          @@rspec_min_fields = value.clone
+        end
+
+        def rspec_report_more_info_fields()
+          Galaxy::TestSupport::Configuration.split_field_symbols(@@rspec_more_info_fields)
+        end
+
+        def rspec_report_more_info_fields=(value)
+          @@rspec_more_info_fields = value.clone
+        end
+
+        def rspec_report_exclude_fields()
+          Galaxy::TestSupport::Configuration.split_field_symbols(@@rspec_exclude_fields)
+        end
+
+        def rspec_report_exclude_fields=(value)
+          @@rspec_exclude_fields = value.clone
+        end
+
+        def rspec_report_expand_fields()
+          Galaxy::TestSupport::Configuration.split_field_symbols(@@rspec_expand_fields)
+        end
+
+        def rspec_report_expand_fields=(value)
+          @@rspec_expand_fields = value.clone
+        end
+
+        def rspec_report_list_all_exclude_fields()
+          exclude_examples = [
+              :self__instance_variable_names__?,
+              :example__instance_variable_names__?,
+              :self__instance_variable_names____memoized__?,
+              :example__instance_variable_names____memoized__?
+          ]
+
+          @@rspec_expand_fields.each do |expand_field|
+            exclude_examples << "#{expand_field}__?".to_sym
+          end
+
+          exclude_examples
+        end
+
+        def rspec_report_list_all_expand_fields()
+          expand_examples = [
+              :self__instance_variable_names__?,
+              :example__instance_variable_names__?,
+          ]
+
+          expand_examples
+        end
+
+        def rspec_report_list_all_fields()
+          field_options = [
+              :self__?,
+              :example__?,
+              :self__instance_variable_names,
+              :example__instance_variable_names,
+              :self__instance_variable_names__?,
+              :example__instance_variable_names__?,
+              :self__callstack,
+              :example__exception,
+              :example__exception__backtrace,
+              :example__exception__?,
+              :logs,
+              :capybara_diagnostics
+          ]
+
+          field_options
+        end
+
+        def split_field_symbols(full_symbol_array)
+          full_symbol_array.map do |full_symbol|
+            Galaxy::TestSupport::Configuration.split_full_field_symbol(full_symbol)
+          end
+        end
+
+        def split_full_field_symbol(full_symbol)
+          field_symbols = full_symbol.to_s.split("__")
+
+          field_symbols.reduce([]) do |array, symbol|
+            if (array.length > 0 && array[-1].blank?)
+              array.pop
+              array << "__#{symbol}".to_sym
+            else
+              if (symbol.blank?)
+                array << nil
+              else
+                array << symbol.to_sym
+              end
+            end
+          end
         end
       end
     end

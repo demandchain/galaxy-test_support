@@ -36,7 +36,10 @@ After do |scenario|
           end
         end
 
-        report_table.write_stats "Instance Variables:", vars_report.full_table, prevent_shrink: true
+        report_table.write_stats "Instance Variables:",
+                                 vars_report.full_table,
+                                 prevent_shrink: true,
+                                 exclude_code_block: true
 
         if Galaxy::TestSupport::Configuration.grab_logs
           Galaxy::TestSupport::LogCapture.capture_logs report_table

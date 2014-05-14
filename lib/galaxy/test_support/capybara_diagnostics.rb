@@ -12,37 +12,52 @@ module Galaxy
         end
 
         if (my_page && my_page.current_url.present?)
-          DiagnosticsReportBuilder.current_report.within_section("Page Dump:") do |report|
+          Galaxy::TestSupport::DiagnosticsReportBuilder.current_report.within_section("Page Dump:") do |report|
             report.within_table do |report_table|
-              report_table.write_stats "Page URL:", my_page.current_url if my_page.try(:current_url)
+              Galaxy::TestSupport::CapybaraDiagnostics.output_page_detail_section(screenshot_name,
+                                                                                  report,
+                                                                                  report_table)
+            end
+          end
+        end
+      end
 
-              if my_page.respond_to?(:html)
-                report_table.write_stats "Page HTML:", report.page_dump(my_page.html), prevent_shrink: true
-                report_table.write_stats "Page:", report.page_link(my_page.html), prevent_shrink: true
-              end
+      def self.output_page_detail_section(screenshot_name, report, report_table)
+        begin
+          my_page = Capybara.current_session
+        rescue
+          # in case Capybara isn't being used.
+          # just keep going...
+        end
 
-              browser = my_page.try(:driver)
-              browser = browser.try(:browser) unless browser.respond_to?(:save_screenshot)
+        if (my_page && my_page.current_url.present?)
+          report_table.write_stats "Page URL:", my_page.current_url if my_page.try(:current_url)
 
-              if browser.respond_to?(:save_screenshot)
-                Dir.mkdir("./tmp") unless File.directory?("./tmp")
+          if my_page.respond_to?(:html)
+            report_table.write_stats "Page HTML:", report.page_dump(my_page.html), prevent_shrink: true
+            report_table.write_stats "Page:", report.page_link(my_page.html), prevent_shrink: true
+          end
 
-                filename = screenshot_name
-                filename = SecureRandom.uuid if filename.blank?
-                filename = filename[Dir.pwd.length..-1] if filename.start_with?(Dir.pwd)
-                filename = filename[1..-1] if filename.start_with?("/")
-                filename = filename["features/".length..-1] if filename.start_with?("features/")
-                filename = filename.gsub("/", "-").gsub(" ", "_").gsub(":", "-")
+          browser = my_page.try(:driver)
+          browser = browser.try(:browser) unless browser.respond_to?(:save_screenshot)
 
-                filename = File.expand_path("./tmp/#{filename}.png")
+          if browser.respond_to?(:save_screenshot)
+            Dir.mkdir("./tmp") unless File.directory?("./tmp")
 
-                begin
-                  browser.save_screenshot(filename)
-                  report_table.write_stats "Screen Shot:", report.image_link(filename), prevent_shrink: true
-                rescue Capybara::NotSupportedByDriverError
-                  report_table.write_stats "Screen Shot:", "Could not save screenshot."
-                end
-              end
+            filename = screenshot_name
+            filename = SecureRandom.uuid if filename.blank?
+            filename = filename[Dir.pwd.length..-1] if filename.start_with?(Dir.pwd)
+            filename = filename[1..-1] if filename.start_with?("/")
+            filename = filename["features/".length..-1] if filename.start_with?("features/")
+            filename = filename.gsub("/", "-").gsub(" ", "_").gsub(":", "-")
+
+            filename = File.expand_path("./tmp/#{filename}.png")
+
+            begin
+              browser.save_screenshot(filename)
+              report_table.write_stats "Screen Shot:", report.image_link(filename), prevent_shrink: true
+            rescue Capybara::NotSupportedByDriverError
+              report_table.write_stats "Screen Shot:", "Could not save screenshot."
             end
           end
         end
@@ -293,7 +308,10 @@ module Galaxy
               sub_report  = Galaxy::TestSupport::DiagnosticsReportBuilder::ReportTable.new
               from_within.output_basic_details sub_report
               from_within.output_finder_details sub_report
-              report_table.write_stats "Within block:", sub_report.full_table, prevent_shrink: true
+              report_table.write_stats "Within block:",
+                                       sub_report.full_table,
+                                       prevent_shrink:     true,
+                                       exclude_code_block: true
 
               from_element = from_within.found_element
 

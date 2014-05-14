@@ -35,13 +35,19 @@ def debug_failed_step(failure_description, step_data, exception, location, step_
           vars_report.write_stats name, Galaxy::TestSupport::DiagnosticsReportBuilder.pretty_print_variable(@running_scenario.send(:instance_variable_get, name))
         end
       end
-      report_table.write_stats "Scenario Variables:", vars_report.full_table, prevent_shrink: true
+      report_table.write_stats "Scenario Variables:",
+                               vars_report.full_table,
+                               prevent_shrink: true,
+                               exclude_code_block: true
 
       vars_report = Galaxy::TestSupport::DiagnosticsReportBuilder::ReportTable.new
       step_definitions.instance_variable_names.each do |name|
         vars_report.write_stats name, Galaxy::TestSupport::DiagnosticsReportBuilder.pretty_print_variable(step_definitions.send(:instance_variable_get, name))
       end
-      report_table.write_stats "Instance Variables:", vars_report.full_table, prevent_shrink: true
+      report_table.write_stats "Instance Variables:",
+                               vars_report.full_table,
+                               prevent_shrink: true,
+                               exclude_code_block: true
 
       if Galaxy::TestSupport::Configuration.grab_logs
         Galaxy::TestSupport::LogCapture.capture_logs report_table

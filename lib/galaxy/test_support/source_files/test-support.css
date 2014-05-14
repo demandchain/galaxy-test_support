@@ -35,6 +35,16 @@
   display: table-row;
 }
 
+.test-support-section:nth-child(2n)
+{
+  background-color: steelblue;
+}
+
+.test-support-section:nth-child(2n +1)
+{
+  background-color: powderblue;
+}
+
 .test-support-row:nth-child(2n)
 {
   background-color: palegoldenrod;
@@ -62,7 +72,7 @@
 .test-support-cell-data
 {
   display: table-cell;
-  width: 100%;
+  width:   100%;
 }
 
 .test-support-page-dump
@@ -82,6 +92,12 @@
 
 .test-support-section
 {
+  padding-top:    0px;
+  padding-left:   10px;
+  padding-bottom: 10px;
+  padding-right:  10px;
+  float:          left;
+  position:       relative;
 }
 
 .test-support-section-image
@@ -110,11 +126,11 @@
 .completed-other
 {
   font-weight: bold;
-  color: green
+  color:       green
 }
 
 .completed-error
 {
   font-weight: bold;
-  color: red
+  color:       red
 }

@@ -115,6 +115,43 @@ You'll probably save yourself a lot of pain during development if you change the
 
     gem 'galaxy-test_support', '~> 0.0.6', :path => '../galaxy-test_support'
 
+## Reports
+
+*Incomplete*
+This is a work in progress, but I am working on a way to configure and customize reports a little.
+
+### Rspec
+Rspec reports for each error found are split into two halves:
+
+* A minimal report half that is always shown
+* A More Info report half that is hidden until the user wants to see it.
+
+The idea is to have a quick view of the essential information for the error that is fairly short so that any
+particular error you may be interested in can be found quickly and easily.
+
+Once found, all of the detailed information for that error can then be found.  This will hopefully simplify finding
+separate errors.  (When there is a lot of information, the boundry between one error and the next gets harder to find
+ when scrolling.
+
+The items in each half and the order of the items can be specified using the following functions:
+
+* Galaxy::TestSupport::Configuration.rspec_report_min_fields
+* Galaxy::TestSupport::Configuration.rspec_report_more_info_fields
+* Galaxy::TestSupport::Configuration.rspec_report_exclude_fields
+* Galaxy::TestSupport::Configuration.rspec_report_expand_fields
+
+To see what fields can be output, excluded, or expanded, you can call these functions:
+
+* Galaxy::TestSupport::Configuration.rspec_report_list_all_fields
+* Galaxy::TestSupport::Configuration.rspec_report_list_all_exclude_fields
+* Galaxy::TestSupport::Configuration.rspec_report_list_all_expand_fields
+
+Any returned item ending with a ? means that the ? can be replaced with any instance_variable name or propery of the
+object as appropriate.
+
+There are lots of things I could do to make this more generic and robust.  It is however a work in progress,
+and I expect that the only use it is likely to see is for my configuraiton of defaults for the display.
+
 ## Contributing
 
 1. Fork it
