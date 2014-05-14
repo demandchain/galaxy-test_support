@@ -120,8 +120,7 @@ You'll probably save yourself a lot of pain during development if you change the
 *Incomplete*
 This is a work in progress, but I am working on a way to configure and customize reports a little.
 
-### Rspec
-Rspec reports for each error found are split into two halves:
+Reports for each error found are split into two halves:
 
 * A minimal report half that is always shown
 * A More Info report half that is hidden until the user wants to see it.
@@ -133,24 +132,95 @@ Once found, all of the detailed information for that error can then be found.  T
 separate errors.  (When there is a lot of information, the boundry between one error and the next gets harder to find
  when scrolling.
 
-The items in each half and the order of the items can be specified using the following functions:
+### Configured Reports
+Reports are generated using:  Galaxy::TestSupport::ConfiguredReport
 
-* Galaxy::TestSupport::Configuration.rspec_report_min_fields
-* Galaxy::TestSupport::Configuration.rspec_report_more_info_fields
-* Galaxy::TestSupport::Configuration.rspec_report_exclude_fields
-* Galaxy::TestSupport::Configuration.rspec_report_expand_fields
+To change the output order and/or information for a report, you can access the ConfiguredReport class for a report
+using Galaxy::TestSupport::Configuration.report_configuration.  The following values can be passed in to get the
+different report configurations:
 
-To see what fields can be output, excluded, or expanded, you can call these functions:
+* :rspec
+* :cucumber
+* ~~:spinach~~
+* ~~:capybara~~
 
-* Galaxy::TestSupport::Configuration.rspec_report_list_all_fields
-* Galaxy::TestSupport::Configuration.rspec_report_list_all_exclude_fields
-* Galaxy::TestSupport::Configuration.rspec_report_list_all_expand_fields
+ConfiguredReport outputs an error report based on symbol based configurations
 
-Any returned item ending with a ? means that the ? can be replaced with any instance_variable name or propery of the
-object as appropriate.
+The configurations are as follows:
+* min_fields
+* more_info_fields
+* expand_fields
+* expand_inline_fields
+* exclude_fields
 
-There are lots of things I could do to make this more generic and robust.  It is however a work in progress,
-and I expect that the only use it is likely to see is for my configuraiton of defaults for the display.
+#### min_field
+
+This is a list of the fields which are to be output at the top of the report such that they are always visible. Items
+ in the min list which cannot be found will output an error.
+
+#### more_info_fields
+
+This is a list of the fields which are to be output below the min fields in a section that is initially hidden.  The
+user can expand these values If/when they need to. Items in the more info list which cannot be found will output an
+error.
+
+#### expand_fields
+
+This is a list of the fields which are to be expanded when they are encountered. Expanded fields are shown in a
+sub-table of values so that the instance variables are then each output.  Items which are to be expanded may be
+explicitly or implicitly exported.  Items which are not encountered but are in the expand list will be ignored.
+
+#### expand_inline_fields
+
+This is a list of the fields which are to be expanded, but unlike expanded fields when these items are expanded,
+they will be placed at the same level as the current items rather than in a sub-table.
+
+#### exclude_fields
+
+This is a list of the fields which are not to be output when they are encountered. There are many implicit ways to
+output a field (such as the expanded fields). If a field is to be implicityly exported,
+it will not be exported if it is in this list.  A field can always be explicitly exported.  Items not encountered but
+ in the exclude list will be ignored.
+
+#### field names
+
+Field names follow a set pattern:
+
+    <object_name>__<function_property_or_hash_name>
+
+You can have as many following __<function_or_property_name> values as you need.
+
+Examples:
+
+* self.exception.backtrace would be specified as: :self__exception__backtrace
+* self.my_hash[:my_key] would be specified as: :self__my_hash__my_key
+* self.to_s would be specified as: :self__to_s
+
+There are a handful of special conditions:
+
+* if the last_line is to_s, the label that is output will not be to_s, but the previous item level
+* :logs
+
+This will output the logs using Galaxy::TestSupport::LogCapture.capture_logs
+Unlike normal items, if there are no logs to export, this will not generate an error.
+
+* :capybara_diagnostics
+
+This will output Capybara infomration using Galaxy::TestSupport::CapybaraDiagnostics.output_page_detail_section.
+NOTE:  This option requres a parameter be passed into the options for :diagnostics_name Unlike normal items,
+if Capybara is not being used, this will not generate an error.
+
+* instance_variables
+
+This allows you to access the instance variables for an object.
+
+self.instance_variable_get("@my_variable_name") would be specified as: self__instance_variables__my_variable_name
+
+self.instance_variables can be used to output all instance variables.
+
+if self.instance_variables is placed in the expand option, the instance variables and their values will be placed in
+a sub-table. Unlike normal items, if there are no instance variables, this will not generate an error.
+
 
 ## Contributing
 

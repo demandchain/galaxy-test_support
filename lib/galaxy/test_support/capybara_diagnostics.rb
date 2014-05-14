@@ -33,6 +33,11 @@ module Galaxy
         if (my_page && my_page.current_url.present?)
           report_table.write_stats "Page URL:", my_page.current_url if my_page.try(:current_url)
 
+          if my_page.driver.respond_to? :evaluate_script
+            report_table.write_stats "Window Height:", my_page.driver.evaluate_script("window.innerHeight")
+            report_table.write_stats "Window Width:", my_page.driver.evaluate_script("window.innerWidth")
+          end
+
           if my_page.respond_to?(:html)
             report_table.write_stats "Page HTML:", report.page_dump(my_page.html), prevent_shrink: true
             report_table.write_stats "Page:", report.page_link(my_page.html), prevent_shrink: true
@@ -179,7 +184,6 @@ module Galaxy
           end
 
           report_table.write_stats "Args:", args_table.full_table, prevent_shrink: true
-
 
           if Capybara.current_session.driver.respond_to? :evaluate_script
             report_table.write_stats "Window Height:", Capybara.current_session.driver.evaluate_script("window.innerHeight")

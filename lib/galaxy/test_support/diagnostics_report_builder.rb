@@ -6,83 +6,6 @@ module Galaxy
       MAX_OLD_FOLDERS = 5
 
       class << self
-        def exclude_instance_variable?(export_field, variable_name, exclusions)
-          exclusions.any? do |exclusion_item|
-            found_item = true
-
-            if exclusion_item.length >= export_field.length + 1
-              export_field.each_with_index do |export_name, export_index|
-                found_item &&= (exclusion_item[export_index] == export_name)
-              end
-
-              found_item &&= (exclusion_item[export_field.length] == variable_name)
-
-              found_item
-            end
-          end
-        end
-
-        alias :expand_instance_variable? :exclude_instance_variable?
-
-        def export_instance_variables(report_table, instance_object, export_field, exclusions, expansions)
-          vars_report = Galaxy::TestSupport::DiagnosticsReportBuilder::ReportTable.new
-
-          instance_object.instance_variable_names.each do |name|
-            unless Galaxy::TestSupport::DiagnosticsReportBuilder.exclude_instance_variable?(export_field,
-                                                                                            name[1..-1].to_sym,
-                                                                                            exclusions)
-              Galaxy::TestSupport::DiagnosticsReportBuilder.export_instance_variable(vars_report, instance_object, name[1..-1].to_sym, export_field, exclusions, expansions)
-            end
-          end
-
-          report_table.write_stats "#{export_field[0]}.variables:",
-                                   vars_report.full_table,
-                                   prevent_shrink:     true,
-                                   exclude_code_block: true
-        end
-
-        def export_instance_variable(report_table, instance_object, variable_name, export_field, exclusions, expansions)
-          sub_object = instance_object.instance_variable_get("@#{variable_name}")
-
-          if (sub_object)
-            if Galaxy::TestSupport::DiagnosticsReportBuilder.expand_instance_variable?(export_field,
-                                                                                       variable_name,
-                                                                                       expansions)
-              sub_export_field = export_field.clone
-              sub_export_field << variable_name
-
-              if sub_object.is_a?(Hash)
-                sub_object.each do |name, value|
-                  unless Galaxy::TestSupport::DiagnosticsReportBuilder.exclude_instance_variable?(sub_export_field,
-                                                                                                  name[1..-1].to_sym,
-                                                                                                  exclusions)
-                    report_table.write_stats name.to_s, Galaxy::TestSupport::DiagnosticsReportBuilder.pretty_print_variable(value)
-                  end
-                end
-              else
-                sub_vars_report = Galaxy::TestSupport::DiagnosticsReportBuilder::ReportTable.new
-
-                sub_object.instance_variable_names.each do |sub_name|
-                  unless Galaxy::TestSupport::DiagnosticsReportBuilder.exclude_instance_variable?(sub_export_field,
-                                                                                                  sub_name[1..-1].to_sym,
-                                                                                                  exclusions)
-                    sub_vars_report.write_stats sub_name, Galaxy::TestSupport::DiagnosticsReportBuilder.pretty_print_variable(
-                        sub_object.instance_variable_get(sub_name.to_sym))
-                  end
-                end
-
-                report_table.write_stats variable_name,
-                                         sub_vars_report.full_table,
-                                         prevent_shrink:     true,
-                                         exclude_code_block: true
-              end
-            else
-              report_table.write_stats variable_name, Galaxy::TestSupport::DiagnosticsReportBuilder.pretty_print_variable(
-                  sub_object)
-            end
-          end
-        end
-
         def escape_string value
           "".html_safe + value.to_s
         end
@@ -96,10 +19,22 @@ module Galaxy
 
         def pretty_print_variable variable
           begin
-            Galaxy::TestSupport::DiagnosticsReportBuilder.format_code_refs(variable.pretty_inspect)
+            if variable.is_a?(String)
+              Galaxy::TestSupport::DiagnosticsReportBuilder.format_code_refs(variable)
+            elsif variable.is_a?(Array)
+              Galaxy::TestSupport::DiagnosticsReportBuilder.formatted_array(variable)
+            else
+              Galaxy::TestSupport::DiagnosticsReportBuilder.format_code_refs(variable.pretty_inspect)
+            end
           rescue
             Galaxy::TestSupport::DiagnosticsReportBuilder.format_code_refs(variable.to_s)
           end
+        end
+
+        def formatted_array(backtrace_array)
+          Galaxy::TestSupport::DiagnosticsReportBuilder.format_code_refs(
+              backtrace_array.map { |value| Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string (value) }.
+                  join("\n").html_safe)
         end
       end
 
@@ -459,13 +394,7 @@ module Galaxy
       end
 
       def formatted_backtrace(error)
-        formatted_trace(error.backtrace)
-      end
-
-      def formatted_trace(backtrace_array)
-        Galaxy::TestSupport::DiagnosticsReportBuilder.format_code_refs(
-            backtrace_array.map { |value| Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string (value) }.
-                join("<br />\n").html_safe)
+        Galaxy::TestSupport::DiagnosticsReportBuilder.formatted_array(error.backtrace)
       end
 
       def html_dump_file_name
