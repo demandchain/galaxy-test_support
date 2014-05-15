@@ -2,6 +2,7 @@ require ::File.expand_path('capybara_diagnostics', File.dirname(__FILE__))
 require ::File.expand_path('diagnostics_report_builder', File.dirname(__FILE__))
 require ::File.expand_path('configuration', File.dirname(__FILE__))
 require ::File.expand_path('log_capture', File.dirname(__FILE__))
+require ::File.expand_path('configured_report', File.dirname(__FILE__))
 
 RSpec.configure do |config|
   config.before(:suite) do
@@ -28,57 +29,11 @@ RSpec.configure do |config|
   config.after(:each) do
     if (@example.exception)
       Galaxy::TestSupport::DiagnosticsReportBuilder.current_report("diagnostics_rspec_report").within_section("Error:") do |report|
-        report.within_table do |report_table|
-          [:full_description, :location].each do |property|
-            report_table.write_stats "#{property.to_s.humanize}:", @example.send(property)
-          end
+        report_generator = Galaxy::TestSupport::Configuration.report_configuration(:rspec)
 
-          vars_report = Galaxy::TestSupport::DiagnosticsReportBuilder::ReportTable.new
-          self.instance_variable_names.each do |name|
-            unless ["@fixture_connections",
-                    "@example",
-                    "@__memoized"].include? name
-            if ["@response", "@controller", "@request"].include? name
-              sub_vars_report = Galaxy::TestSupport::DiagnosticsReportBuilder::ReportTable.new
-              sub_object = self.instance_variable_get(name.to_sym)
-              sub_object.instance_variable_names.each do |sub_name|
-                sub_vars_report.write_stats sub_name, Galaxy::TestSupport::DiagnosticsReportBuilder.pretty_print_variable(
-                    sub_object.instance_variable_get(sub_name.to_sym))
-              end
-
-              vars_report.write_stats name, sub_vars_report.full_table, prevent_shrink: true
-            else
-              vars_report.write_stats name, Galaxy::TestSupport::DiagnosticsReportBuilder.pretty_print_variable(
-                  self.instance_variable_get(name.to_sym))
-            end
-            end
-          end
-          if @__memoized
-            @__memoized.each do |name, value|
-              vars_report.write_stats name.to_s, Galaxy::TestSupport::DiagnosticsReportBuilder.pretty_print_variable(value)
-            end
-          end
-          @example.instance_variable_names.each do |name|
-            unless ["@example_group_instance", "@metadata"].include? name
-              vars_report.write_stats name, Galaxy::TestSupport::DiagnosticsReportBuilder.pretty_print_variable(@example.instance_variable_get(name.to_sym))
-            end
-          end
-          report_table.write_stats "Variables:", vars_report.full_table, prevent_shrink: true
-
-          report_table.write_stats "Call stack:", report.formatted_trace(@example.metadata[:caller])
-
-          if @example.exception
-            report_table.write_stats "Exception:", @example.exception.to_s
-            report_table.write_stats "Backtrace:", report.formatted_backtrace(@example.exception)
-          end
-
-          if Galaxy::TestSupport::Configuration.grab_logs
-            Galaxy::TestSupport::LogCapture.capture_logs report_table
-          end
-        end
+        report_generator.add_report_objects(self: self)
+        report_generator.generate_report_for_object(report, diagnostics_name: @example.full_description)
       end
-
-      Galaxy::TestSupport::CapybaraDiagnostics.output_page_details(@example.full_description)
     end
   end
 end

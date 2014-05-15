@@ -5,8 +5,37 @@ module Galaxy
     class DiagnosticsReportBuilder
       MAX_OLD_FOLDERS = 5
 
-      def self.escape_string value
-        "".html_safe + value.to_s
+      class << self
+        def escape_string value
+          "".html_safe + value.to_s.force_encoding("UTF-8")
+        end
+
+        def format_code_refs(some_text)
+          safe_text = Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(some_text)
+
+          safe_text.gsub(/(#{Rails.root}|\.\/|(?=(?:^features|^spec)\/))([^\:\n]*\:[^\:\n ]*)/,
+                         "\\1 <span class=\"test-support-app-file\">\\2\\3</span> ").html_safe
+        end
+
+        def pretty_print_variable variable
+          begin
+            if variable.is_a?(String)
+              Galaxy::TestSupport::DiagnosticsReportBuilder.format_code_refs(variable)
+            elsif variable.is_a?(Array)
+              Galaxy::TestSupport::DiagnosticsReportBuilder.formatted_array(variable)
+            else
+              Galaxy::TestSupport::DiagnosticsReportBuilder.format_code_refs(variable.pretty_inspect)
+            end
+          rescue
+            Galaxy::TestSupport::DiagnosticsReportBuilder.format_code_refs(variable.to_s)
+          end
+        end
+
+        def formatted_array(backtrace_array)
+          Galaxy::TestSupport::DiagnosticsReportBuilder.format_code_refs(
+              backtrace_array.map { |value| Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string (value) }.
+                  join("\n").html_safe)
+        end
       end
 
       def initialize(folder_name = "diagnostics_report")
@@ -15,18 +44,36 @@ module Galaxy
       end
 
       class ReportTable
-        def initialize
+        def initialize(options = {})
           @full_table   = ""
           @table_closed = false
+          @options      = options
+
           open_table
         end
 
         def open_table
-          @full_table << "<div class=\"test-support-table\">"
+          if (@options[:additional_information])
+            @full_table << "<div class=\"test-support-table\">\n"
+            @full_table << "<div class=\"test-support-row\">\n"
+            @full_table << "<div class=\"test-support-cell-data\">\n"
+            @full_table << "<a class =\"test-support-additional-details\" href=\"#\">More Details...</a>\n"
+            @full_table << "</div>\n"
+            @full_table << "</div>\n"
+            @full_table << "</div>\n"
+            @full_table << "<div class=\"test-support-additional-details hidden\">\n"
+          end
+
+          @full_table << "<div class=\"test-support-table\">\n"
         end
 
         def close_table
-          @full_table << "</div>" unless @table_closed
+          @full_table << "</div>\n" unless @table_closed
+
+          if (@options[:additional_information])
+            @full_table << "</div>\n" unless @table_closed
+          end
+
           @table_closed = true
         end
 
@@ -43,25 +90,33 @@ module Galaxy
         #                       If set, the cell will not be truncated if it is too tall, instead the cell will show
         #                       the full contents.
         def write_stats label, value, options = {}
-          @full_table << "<div class=\"test-support-row\">"
-          @full_table << "<div class=\"test-support-cell-label\">#{Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(label)}</div>"
-          @full_table << "<div class=\"test-support-cell-expand\">"
-          unless options[:prevent_shrink]
-            @full_table << "<div class=\"hidden\"><a href=\"#\"><img src=\"expand.gif\"></a></div>"
-          end
-          @full_table << "</div>"
-          @full_table << "<div class=\"test-support-cell-data\">"
-          unless options[:prevent_shrink]
-            @full_table << "<div class=\"hide-contents\">"
+          if options[:do_not_pretty_print]
+            print_value = Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(value)
+          else
+            print_value = Galaxy::TestSupport::DiagnosticsReportBuilder.pretty_print_variable(value)
           end
 
-          @full_table << "<pre><code>#{Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(value)}</code></pre>"
+          @full_table << "<div class=\"test-support-row\">\n"
+          @full_table << "<div class=\"test-support-cell-label\">\n#{Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(label)}\n</div>\n"
+          @full_table << "<div class=\"test-support-cell-expand\">\n"
           unless options[:prevent_shrink]
-            @full_table << "</div>"
-            @full_table << "<div class=\"test-support-cell-more hidden\"><a href=\"#\">more...</a></div>"
+            @full_table << "<div class=\"hidden\"><a class=\"test-support-cell-more-data\" href=\"#\"><img src=\"expand.gif\"></a></div>\n"
           end
-          @full_table << "</div>"
-          @full_table << "</div>"
+          @full_table << "</div>\n"
+          @full_table << "<div class=\"test-support-cell-data\">\n"
+          unless options[:prevent_shrink]
+            @full_table << "<div class=\"hide-contents\">\n"
+          end
+
+          @full_table << "<pre><code>" unless options[:exclude_code_block]
+          @full_table << print_value
+          @full_table << "</code></pre>\n" unless options[:exclude_code_block]
+          unless options[:prevent_shrink]
+            @full_table << "</div>\n"
+            @full_table << "<div class=\"test-support-cell-more hidden\"><a class=\"test-support-cell-more-data\" href=\"#\">more...</a></div>\n"
+          end
+          @full_table << "</div>\n"
+          @full_table << "</div>\n"
         end
 
         def full_table
@@ -293,24 +348,21 @@ module Galaxy
       def within_section(section_text, &block)
         begin
           File.open(report_page_name, "a:UTF-8") do |write_file|
-            write_file.write "<p class=\"test-support-section-label\">#{Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(section_text)}</p>".
+            write_file.write "<div class=\"test-support-section\">\n"
+            write_file.write "<p class=\"test-support-section-label\">\n#{Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(section_text)}\n</p>\n".
                                  force_encoding("UTF-8")
-            write_file.write "\n"
-            write_file.write "<div class=\"test-support-section\">"
-            write_file.write "\n"
           end
           block.yield self
         ensure
           File.open(report_page_name, "a:UTF-8") do |write_file|
-            write_file.write "<div/>"
-            write_file.write "\n"
+            write_file.write "</div>\n"
           end
         end
       end
 
-      def within_table(&block)
+      def within_table(options = {}, &block)
         begin
-          report_table = ReportTable.new
+          report_table = ReportTable.new(options)
           block.yield report_table
         ensure
           File.open(report_page_name, "a:UTF-8") do |write_file|
@@ -336,7 +388,7 @@ module Galaxy
       end
 
       def page_dump(page_html)
-        "<textarea class=\"test-support-page-dump\">#{Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(page_html)}</textarea>".html_safe
+        "<textarea class=\"test-support-page-dump\">#{Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(page_html)}</textarea>\n".html_safe
       end
 
       def page_link(page_html)
@@ -344,24 +396,11 @@ module Galaxy
         File.open(dump_file_name, "w:UTF-8") do |dump_file|
           dump_file.write page_html.to_s.force_encoding("UTF-8")
         end
-        "<iframe src=\"#{File.basename(dump_file_name)}\" class=\"test-support-sample-frame\"></iframe>".html_safe
+        "<iframe src=\"#{File.basename(dump_file_name)}\" class=\"test-support-sample-frame\"></iframe>\n".html_safe
       end
 
       def formatted_backtrace(error)
-        formatted_trace(error.backtrace)
-      end
-
-      def formatted_trace(backtrace_array)
-        Galaxy::TestSupport::DiagnosticsReportBuilder.format_code_refs(
-            backtrace_array.map { |value| Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string (value) }.
-                join("<br />\n").html_safe)
-      end
-
-      def self.format_code_refs(some_text)
-        safe_text = Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(some_text)
-
-        safe_text.gsub(/(#{Rails.root}|\.\/|(?=(?:^features|^spec)\/))([^\:\n]*\:[^\:\n ]*)/,
-                       "\\1 <span class=\"test-support-app-file\">\\2\\3</span> ").html_safe
+        Galaxy::TestSupport::DiagnosticsReportBuilder.formatted_array(error.backtrace)
       end
 
       def html_dump_file_name
@@ -371,14 +410,6 @@ module Galaxy
         end
 
         File.join(report_folder_name, "html_dump_#{dump_num}.html")
-      end
-
-      def self.pretty_print_variable variable
-        begin
-          Galaxy::TestSupport::DiagnosticsReportBuilder.format_code_refs(variable.pretty_inspect)
-        rescue
-          Galaxy::TestSupport::DiagnosticsReportBuilder.format_code_refs(variable.to_s)
-        end
       end
     end
   end

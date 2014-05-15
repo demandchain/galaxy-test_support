@@ -12,37 +12,69 @@ module Galaxy
         end
 
         if (my_page && my_page.current_url.present?)
-          DiagnosticsReportBuilder.current_report.within_section("Page Dump:") do |report|
+          Galaxy::TestSupport::DiagnosticsReportBuilder.current_report.within_section("Page Dump:") do |report|
             report.within_table do |report_table|
-              report_table.write_stats "Page URL:", my_page.current_url if my_page.try(:current_url)
+              Galaxy::TestSupport::CapybaraDiagnostics.output_page_detail_section(screenshot_name,
+                                                                                  report,
+                                                                                  report_table)
+            end
+          end
+        end
+      end
 
-              if my_page.respond_to?(:html)
-                report_table.write_stats "Page HTML:", report.page_dump(my_page.html), prevent_shrink: true
-                report_table.write_stats "Page:", report.page_link(my_page.html), prevent_shrink: true
-              end
+      def self.output_page_detail_section(screenshot_name, report, report_table)
+        begin
+          my_page = Capybara.current_session
+        rescue
+          # in case Capybara isn't being used.
+          # just keep going...
+        end
 
-              browser = my_page.try(:driver)
-              browser = browser.try(:browser) unless browser.respond_to?(:save_screenshot)
+        if (my_page && my_page.current_url.present?)
+          report_table.write_stats "Page URL:", my_page.current_url if my_page.try(:current_url)
 
-              if browser.respond_to?(:save_screenshot)
-                Dir.mkdir("./tmp") unless File.directory?("./tmp")
+          if my_page.driver.respond_to? :evaluate_script
+            report_table.write_stats "Window Height:", my_page.driver.evaluate_script("window.innerHeight")
+            report_table.write_stats "Window Width:", my_page.driver.evaluate_script("window.innerWidth")
+          end
 
-                filename = screenshot_name
-                filename = SecureRandom.uuid if filename.blank?
-                filename = filename[Dir.pwd.length..-1] if filename.start_with?(Dir.pwd)
-                filename = filename[1..-1] if filename.start_with?("/")
-                filename = filename["features/".length..-1] if filename.start_with?("features/")
-                filename = filename.gsub("/", "-").gsub(" ", "_").gsub(":", "-")
+          if my_page.respond_to?(:html)
+            report_table.write_stats "Page HTML:",
+                                     report.page_dump(my_page.html),
+                                     prevent_shrink: true,
+                                     exclude_code_block: true,
+                                     do_not_pretty_print: true
+            report_table.write_stats "Page:",
+                                     report.page_link(my_page.html),
+                                     prevent_shrink: true,
+                                     exclude_code_block: true,
+                                     do_not_pretty_print: true
+          end
 
-                filename = File.expand_path("./tmp/#{filename}.png")
+          browser = my_page.try(:driver)
+          browser = browser.try(:browser) unless browser.respond_to?(:save_screenshot)
 
-                begin
-                  browser.save_screenshot(filename)
-                  report_table.write_stats "Screen Shot:", report.image_link(filename), prevent_shrink: true
-                rescue Capybara::NotSupportedByDriverError
-                  report_table.write_stats "Screen Shot:", "Could not save screenshot."
-                end
-              end
+          if browser.respond_to?(:save_screenshot)
+            Dir.mkdir("./tmp") unless File.directory?("./tmp")
+
+            filename = screenshot_name
+            filename = SecureRandom.uuid if filename.blank?
+            filename = filename[Dir.pwd.length..-1] if filename.start_with?(Dir.pwd)
+            filename = filename[1..-1] if filename.start_with?("/")
+            filename = filename["features/".length..-1] if filename.start_with?("features/")
+            filename = filename.gsub("/", "-").gsub(" ", "_").gsub(":", "-")
+
+            filename = File.expand_path("./tmp/#{filename}.png")
+
+            begin
+              browser.save_screenshot(filename)
+              report_table.write_stats "Screen Shot:",
+                                       report.image_link(filename),
+                                       prevent_shrink: true,
+                                       exclude_code_block: true,
+                                       do_not_pretty_print: true
+            rescue Capybara::NotSupportedByDriverError
+              report_table.write_stats "Screen Shot:", "Could not save screenshot."
             end
           end
         end
@@ -136,7 +168,7 @@ module Galaxy
             report.within_table do |report_table|
               if (error)
                 report_table.write_stats "Error:", $!.to_s
-                report_table.write_stats "Backtrace:", report.formatted_backtrace($!)
+                report_table.write_stats "Backtrace:", $!.backtrace
               end
 
               output_basic_details report_table
@@ -163,8 +195,11 @@ module Galaxy
             end
           end
 
-          report_table.write_stats "Args:", args_table.full_table, prevent_shrink: true
-
+          report_table.write_stats "Args:",
+                                   args_table.full_table,
+                                   prevent_shrink: true,
+                                   exclude_code_block: true,
+                                   do_not_pretty_print: true
 
           if Capybara.current_session.driver.respond_to? :evaluate_script
             report_table.write_stats "Window Height:", Capybara.current_session.driver.evaluate_script("window.innerHeight")
@@ -179,21 +214,29 @@ module Galaxy
         # This may help identify why the right one isn't being found.
         def output_finder_details report_table
           if guessed_types.length > 1
-            report_table.write_stats "Alternate possible types:", guessed_types.join("<br />\n").html_safe
+            report_table.write_stats "Alternate possible types:", guessed_types.join("\n")
           end
 
           all_page_elements = Capybara.current_session.all(*search_args, visible: false).to_a
           all_elements report_table
           report_table.write_stats "Total elements found:", all_elements.length
           all_elements.each_with_index do |element, element_index|
-            report_table.write_stats "Element[#{element_index}]", analyze_report_element(element, report_table), prevent_shrink: true
+            report_table.write_stats "Element[#{element_index}]",
+                                     analyze_report_element(element, report_table),
+                                     prevent_shrink: true,
+                                     exclude_code_block: true,
+                                     do_not_pretty_print: true
           end
 
           if (all_elements.length != all_page_elements.length)
             all_other_elements = all_page_elements - all_elements
             report_table.write_stats "Total elements found elsewhere:", all_other_elements.length
             all_other_elements.each_with_index do |element, element_index|
-              report_table.write_stats "Other Element[#{element_index}]", analyze_report_element(element, report_table), prevent_shrink: true
+              report_table.write_stats "Other Element[#{element_index}]",
+                                       analyze_report_element(element, report_table),
+                                       prevent_shrink: true,
+                                       exclude_code_block: true,
+                                       do_not_pretty_print: true
             end
           end
         end
@@ -293,7 +336,11 @@ module Galaxy
               sub_report  = Galaxy::TestSupport::DiagnosticsReportBuilder::ReportTable.new
               from_within.output_basic_details sub_report
               from_within.output_finder_details sub_report
-              report_table.write_stats "Within block:", sub_report.full_table, prevent_shrink: true
+              report_table.write_stats "Within block:",
+                                       sub_report.full_table,
+                                       prevent_shrink:     true,
+                                       exclude_code_block: true,
+                                       do_not_pretty_print: true
 
               from_element = from_within.found_element
 
@@ -342,7 +389,7 @@ module Galaxy
           elsif value.is_a?(String)
             "\"#{value.to_s}\""
           else
-            value.to_s
+            value
           end
         end
 
@@ -403,7 +450,7 @@ module Galaxy
               element_report.write_stats "outterHTML", @test_object.evaluate_script("$(\"\##{element_id}\")[0].outerHTML")
             end
           end
-          element_report.write_stats "inspect", Galaxy::TestSupport::DiagnosticsReportBuilder.pretty_print_variable(element)
+          element_report.write_stats "inspect", element
           element_report.full_table
         end
 

@@ -1,10 +1,122 @@
+require ::File.expand_path('configured_report', File.dirname(__FILE__))
+
 module Galaxy
   module TestSupport
     class Configuration
-      @@rspec_seed     = nil
-      @@user_log_files = {}
+      @@rspec_seed        = nil
+      @@user_log_files    = {}
       @@default_num_lines = 500
-      @@grab_logs      = true
+      @@grab_logs         = true
+
+      @@configured_reports = {
+          rspec:    Galaxy::TestSupport::ConfiguredReport.new(
+                        min_fields:           [
+                                                  :self__instance_variables__example__full_description,
+                                                  :self__instance_variables__example__location,
+                                                  :self__instance_variables__example__exception__to_s,
+                                                  :self__instance_variables__example__exception__backtrace
+                                              ],
+                        more_info_fields:     [
+                                                  :self__instance_variables,
+                                                  :self__instance_variables__example__instance_variables,
+                                                  :self__instance_variables__example__metadata__caller,
+                                                  :logs,
+                                                  :capybara_diagnostics
+                                              ],
+                        expand_fields:        [
+                                                  :self__instance_variables,
+                                                  :self__instance_variables__example__instance_variables,
+                                                  :self__instance_variables__response,
+                                                  :self__instance_variables__controller,
+                                                  :self__instance_variables__request,
+                                              ],
+                        expand_inline_fields: [
+                                                  :self__instance_variables____memoized
+                                              ],
+                        exclude_fields:       [
+                                                  :self__instance_variables__fixture_connections,
+                                                  :self__instance_variables__example,
+                                                  :self__instance_variables__example__instance_variables__example_group_instance,
+                                                  :self__instance_variables__example__instance_variables__metadata
+                                              ]
+                    ),
+          cucumber: Galaxy::TestSupport::ConfiguredReport.new(
+                        min_fields:           [
+                                                  :scenario__feature__instance_variables__title,
+                                                  :scenario__feature__instance_variables__location,
+                                                  :scenario__instance_variables__title,
+                                                  :scenario__instance_variables__location,
+                                                  :scenario__exception__to_s,
+                                                  :scenario__exception__backtrace
+                                              ],
+                        more_info_fields:     [
+                                                  :scenario__instance_variables,
+                                                  :scenario__feature__instance_variables__comment,
+                                                  :scenario__feature__instance_variables__keyword,
+                                                  :scenario__feature__instance_variables__description,
+                                                  :scenario__feature__instance_variables__gherkin_statement,
+                                                  :scenario__feature__instance_variables__tags,
+                                                  :scenario__instance_variables__current_visitor__configuration,
+                                                  :self__instance_variables,
+                                                  :logs,
+                                                  :capybara_diagnostics
+                                              ],
+                        expand_fields:        [
+                                                  :scenario__instance_variables,
+                                                  :self__instance_variables,
+                                              ],
+                        expand_inline_fields: [
+                                              ],
+                        exclude_fields:       [
+                                                  :scenario__instance_variables__background,
+                                                  :scenario__instance_variables__feature,
+                                                  :scenario__instance_variables__current_visitor,
+                                                  :scenario__instance_variables__raw_steps,
+                                                  :scenario__instance_variables__title,
+                                                  :scenario__instance_variables__location,
+                                                  :self__instance_variables____cucumber_runtime,
+                                                  :self__instance_variables____natural_language,
+                                                  :self__instance_variables___rack_test_sessions,
+                                                  :self__instance_variables___rack_mock_sessions,
+                                                  :self__instance_variables__integration_session
+                                              ]
+                    ),
+          spinach:  Galaxy::TestSupport::ConfiguredReport.new(
+                        min_fields:           [
+                                                  :failure_description,
+                                                  :running_scenario__instance_variables__feature__name,
+                                                  :running_scenario__instance_variables__name,
+                                                  :running_scenario__instance_variables__line,
+                                                  :step_data__name,
+                                                  :step_data__line,
+                                                  :exception__to_s,
+                                                  :exception__backtrace
+                                              ],
+                        more_info_fields:     [
+                                                  :running_scenario__instance_variables__feature__tags,
+                                                  :running_scenario__instance_variables,
+                                                  :step_data__instance_variables,
+                                                  :step_definitions__instance_variables,
+                                                  :logs,
+                                                  :capybara_diagnostics
+                                              ],
+                        expand_fields:        [
+                                                  :running_scenario__instance_variables,
+                                                  :step_data__instance_variables,
+                                                  :step_definitions__instance_variables
+                                              ],
+                        expand_inline_fields: [
+                                              ],
+                        exclude_fields:       [
+                                                  :running_scenario__instance_variables__feature,
+                                                  :step_data__scenario__instance_variables__feature,
+                                                  :running_scenario__instance_variables__name,
+                                                  :running_scenario__instance_variables__line,
+                                                  :step_data__name,
+                                                  :step_data__line
+                                              ]
+                    )
+      }
 
       class << self
         # rspec_seed is the seed value used to seed the srand function at the start of a test
@@ -80,6 +192,17 @@ module Galaxy
         # NOTE:  You cannot remove the default log file.
         def remove_log_file(log_file_name)
           @@user_log_files.delete log_file_name
+        end
+
+        # returns the report configuration object for that type of report
+        #
+        # values for report_name:
+        #   :rspec
+        #   :cucumber
+        #   :spinach
+        #   :capybara
+        def report_configuration(report_name)
+          @@configured_reports[report_name]
         end
       end
     end
