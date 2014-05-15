@@ -399,10 +399,6 @@ module Galaxy
         "<iframe src=\"#{File.basename(dump_file_name)}\" class=\"test-support-sample-frame\"></iframe>\n".html_safe
       end
 
-      def formatted_backtrace(error)
-        Galaxy::TestSupport::DiagnosticsReportBuilder.formatted_array(error.backtrace)
-      end
-
       def html_dump_file_name
         dump_num = 1
         while File.exists?(File.join(report_folder_name, "html_dump_#{dump_num}.html"))
