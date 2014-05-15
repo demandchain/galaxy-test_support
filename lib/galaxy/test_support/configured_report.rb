@@ -163,7 +163,8 @@ module Galaxy
           report_table.write_stats symbol_name,
                                    sub_vars_report.full_table,
                                    prevent_shrink:     true,
-                                   exclude_code_block: true
+                                   exclude_code_block: true,
+                                   do_not_pretty_print: true
         end
       end
 
@@ -184,8 +185,7 @@ module Galaxy
                 report_object = parent_object.send(:[], export_field[level])
               else
                 report_object = nil
-                print_value   = Galaxy::TestSupport::DiagnosticsReportBuilder.pretty_print_variable(
-                    "Could not identify field: #{export_field[0..level].join("__")} while exporting #{export_field.join("__")}")
+                print_value   = "Could not identify field: #{export_field[0..level].join("__")} while exporting #{export_field.join("__")}"
 
                 report_table.write_stats "ERROR", print_value
               end
@@ -231,9 +231,7 @@ module Galaxy
                                           level + 1,
                                           options.merge(expand_inline: expand_variable_inline?(export_field, symbol_name)))
                     else
-                      print_value = Galaxy::TestSupport::DiagnosticsReportBuilder.pretty_print_variable(instance_object)
-
-                      instance_table.write_stats symbol_name, print_value
+                      instance_table.write_stats symbol_name, instance_object
                     end
                   end
                 end
@@ -243,7 +241,8 @@ module Galaxy
                   report_table.write_stats export_field[-2],
                                            instance_table.full_table,
                                            prevent_shrink:     true,
-                                           exclude_code_block: true
+                                           exclude_code_block: true,
+                                           do_not_pretty_print: true
                 end
 
               when :logs
@@ -267,15 +266,13 @@ module Galaxy
                                       options.merge({ expand_inline:
                                                           expand_variable_inline?(export_field[0..-2], export_field[-1]) }))
                 else
-                  print_value = Galaxy::TestSupport::DiagnosticsReportBuilder.pretty_print_variable(report_object)
-
                   if export_field[-1] == :to_s
                     print_name = export_field[-2]
                   else
                     print_name = export_field[-1]
                   end
 
-                  report_table.write_stats print_name, print_value
+                  report_table.write_stats print_name, report_object
                 end
             end
           end

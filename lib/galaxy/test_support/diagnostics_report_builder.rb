@@ -90,6 +90,12 @@ module Galaxy
         #                       If set, the cell will not be truncated if it is too tall, instead the cell will show
         #                       the full contents.
         def write_stats label, value, options = {}
+          if options[:do_not_pretty_print]
+            print_value = Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(value)
+          else
+            print_value = Galaxy::TestSupport::DiagnosticsReportBuilder.pretty_print_variable(value)
+          end
+
           @full_table << "<div class=\"test-support-row\">\n"
           @full_table << "<div class=\"test-support-cell-label\">\n#{Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(label)}\n</div>\n"
           @full_table << "<div class=\"test-support-cell-expand\">\n"
@@ -103,7 +109,7 @@ module Galaxy
           end
 
           @full_table << "<pre><code>" unless options[:exclude_code_block]
-          @full_table << Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(value)
+          @full_table << print_value
           @full_table << "</code></pre>\n" unless options[:exclude_code_block]
           unless options[:prevent_shrink]
             @full_table << "</div>\n"
