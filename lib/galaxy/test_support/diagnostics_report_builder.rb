@@ -1,4 +1,5 @@
 require ::File.expand_path('file_asset', File.dirname(__FILE__))
+require ::File.expand_path('pretty_formatter', File.dirname(__FILE__))
 
 module Galaxy
   module TestSupport
@@ -13,28 +14,37 @@ module Galaxy
         def format_code_refs(some_text)
           safe_text = Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string(some_text)
 
-          safe_text.gsub(/(#{Rails.root}|\.\/|(?=(?:^features|^spec)\/))([^\:\n]*\:[^\:\n ]*)/,
+          safe_text.gsub(/(#{Rails.root}|\.\/|(?=(?:^features|^spec)\/))([^\:\n]*\:[^\:\n\>& ]*)/,
                          "\\1 <span class=\"test-support-app-file\">\\2\\3</span> ").html_safe
         end
 
         def pretty_print_variable variable
+          pretty = variable
+
+          pretty = Galaxy::TestSupport::DiagnosticsReportBuilder.simple_pretty_print_variable(pretty)
+          pretty = Galaxy::TestSupport::PrettyFormatter.format_string(pretty)
+          pretty = Galaxy::TestSupport::DiagnosticsReportBuilder.format_code_refs(pretty)
+
+          pretty
+        end
+
+        def simple_pretty_print_variable variable
           begin
             if variable.is_a?(String)
-              Galaxy::TestSupport::DiagnosticsReportBuilder.format_code_refs(variable)
+              variable
             elsif variable.is_a?(Array)
               Galaxy::TestSupport::DiagnosticsReportBuilder.formatted_array(variable)
             else
-              Galaxy::TestSupport::DiagnosticsReportBuilder.format_code_refs(variable.pretty_inspect)
+              variable.pretty_inspect
             end
           rescue
-            Galaxy::TestSupport::DiagnosticsReportBuilder.format_code_refs(variable.to_s)
+            variable.to_s
           end
         end
 
         def formatted_array(backtrace_array)
-          Galaxy::TestSupport::DiagnosticsReportBuilder.format_code_refs(
-              backtrace_array.map { |value| Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string (value) }.
-                  join("\n").html_safe)
+          backtrace_array.map { |value| Galaxy::TestSupport::DiagnosticsReportBuilder.escape_string (value) }.
+              join("\n").html_safe
         end
       end
 
