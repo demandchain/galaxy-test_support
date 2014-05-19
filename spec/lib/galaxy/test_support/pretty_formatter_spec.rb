@@ -80,6 +80,18 @@ describe Galaxy::TestSupport::PrettyFormatter do
       pretty                     = Galaxy::TestSupport::PrettyFormatter.format_string(test_value)
       expect(pretty).to be == expected_value
     end
+
+    it "formats an html_safe complicated value (#{index})" do
+      @seed_value = rand(100000000000000000000000000000000000000..899999999999999999999999999999999999999)
+      puts("@seed_value = #{@seed_value}")
+      srand(@seed_value)
+
+      test_value, expected_value = create_value(0, [:class, :embedded_class].sample)
+      test_value                 = "".html_safe + test_value
+      expected_value             = "".html_safe + expected_value
+      pretty                     = Galaxy::TestSupport::PrettyFormatter.format_string(test_value)
+      expect(pretty).to be == expected_value
+    end
   end
 end
 

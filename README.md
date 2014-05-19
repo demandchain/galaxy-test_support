@@ -97,7 +97,7 @@ To turn off the automatic grabbing of logs (default is true):
     Galaxy::TestSupport::Configuration.grab_logs = false
 
 To adjust the number of lines fetched (default is 500 lines):
-s
+
     Galaxy::TestSupport::Configuration.default_num_lines = 500
 
 To add other log files:
