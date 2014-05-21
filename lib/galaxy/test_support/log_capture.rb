@@ -73,8 +73,11 @@ module Galaxy
               end
 
               report_table.write_stats File.basename(log_file_name),
-                                       Galaxy::TestSupport::LogCapture.highlight_log_output(
-                                           "log_file - #{log_file_name}:#{file_size}\n#{log_buffer.join("\n")}"),
+                                       Galaxy::TestSupport::PrettyFormatter.format_string(
+                                           Galaxy::TestSupport::LogCapture.highlight_log_output(
+                                               "log_file - #{log_file_name}:#{file_size}\n#{log_buffer.join("\n")}"
+                                           )
+                                       ),
                                        do_not_pretty_print: true
 
               output_file = true
