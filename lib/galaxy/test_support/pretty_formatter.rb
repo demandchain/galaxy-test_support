@@ -13,12 +13,22 @@ module Galaxy
       end
 
       def pretty_print
-        if @print_html_safe
-          do_pretty_print = @unknown_string =~ /\#\&lt;[^ \t\n]+/
-          do_pretty_print = do_pretty_print != (@unknown_string =~ /\#\&lt;[^ \t\n]+[ \t]*\n/)
-        else
-          do_pretty_print = @unknown_string =~ /\#\<[^ \t\n]+/
-          do_pretty_print = do_pretty_print != (@unknown_string =~ /\#\<[^ \t\n]+[ \t]*\n/)
+        search_pos = 0
+
+        do_pretty_print     = @unknown_string =~ /Parameters:[^\n]*{.*?}/
+        formatted_class_pos = class_pos = -1
+        while !do_pretty_print && class_pos && class_pos == formatted_class_pos
+          search_pos += formatted_class_pos + 1
+
+          if @print_html_safe
+            class_pos           = @unknown_string[search_pos..-1] =~ /\#\&lt;[^ \t\n]+/
+            formatted_class_pos = (@unknown_string[search_pos..-1] =~ /\#\&lt;[^ \t\n]+[ \t]*\n/)
+          else
+            class_pos           = @unknown_string[search_pos..-1] =~ /\#\<[^ \t\n]+/
+            formatted_class_pos = (@unknown_string[search_pos..-1] =~ /\#\<[^ \t\n]+[ \t]*\n/)
+          end
+
+          do_pretty_print ||= (class_pos && class_pos != formatted_class_pos)
         end
 
         if do_pretty_print
@@ -33,20 +43,28 @@ module Galaxy
           while @current_pos < @unknown_string_len
             case @current_state
               when :unknown
-                if @print_html_safe
-                  do_pretty_print = @unknown_string[@current_pos..-1] =~ /\#\&lt;[^ \t\n]+/
-                  do_pretty_print = do_pretty_print != (@unknown_string[@current_pos..-1] =~ /\#\&lt;[^ \t\n]+[ \t]*\n/)
-                else
-                  do_pretty_print = @unknown_string[@current_pos..-1] =~ /\#\<[^ \t\n]+/
-                  do_pretty_print = do_pretty_print != (@unknown_string[@current_pos..-1] =~ /\#\<[^ \t\n]+[ \t]*\n/)
-                end
+                search_pos          = @current_pos
+                params_pos          = @unknown_string[search_pos..-1] =~ /Parameters:[^\n]*{.*?}/
+                params_pos          += search_pos if params_pos
+                formatted_class_pos = class_pos = -1
+                while (class_pos && class_pos == formatted_class_pos)
+                  search_pos += formatted_class_pos + 1
 
-                if do_pretty_print
                   if @print_html_safe
-                    @current_pos += @unknown_string[@current_pos..-1] =~ /\#\&lt;[^ \t\n]+/
+                    class_pos           = @unknown_string[search_pos..-1] =~ /\#\&lt;[^ \t\n]+/
+                    formatted_class_pos = (@unknown_string[search_pos..-1] =~ /\#\&lt;[^ \t\n]+[ \t]*\n/)
                   else
-                    @current_pos += @unknown_string[@current_pos..-1] =~ /\#\<[^ \t\n]+/
+                    class_pos           = @unknown_string[search_pos..-1] =~ /\#\<[^ \t\n]+/
+                    formatted_class_pos = (@unknown_string[search_pos..-1] =~ /\#\<[^ \t\n]+[ \t]*\n/)
                   end
+                end
+                class_pos           += search_pos if class_pos
+                formatted_class_pos += search_pos if formatted_class_pos
+
+                if class_pos &&
+                    class_pos != formatted_class_pos &&
+                    (!params_pos || class_pos < params_pos)
+                  @current_pos = class_pos
 
                   if @current_pos
                     if @start_pos < @current_pos || @start_pos > 0
@@ -61,13 +79,49 @@ module Galaxy
                     output_end
                   end
                 else
-                  output_end
+                  if params_pos
+                    @current_pos = params_pos
+                    @state_stack << :parameters
+
+                    if @start_pos < @current_pos || @start_pos > 0
+                      output_line(@unknown_string[@start_pos..@current_pos - 1])
+                    else
+                      @state_stack << :bottom_level
+                      @indent_level -= 1
+                    end
+
+                    @formatted_string.rstrip!
+                    @state_stack << :parameters_name
+                    @current_state = :value
+                    @start_pos     = @current_pos
+                    @indent_level  += 1
+                  else
+                    output_end
+                  end
                 end
 
               when :value_end
                 case @state_stack[-1]
                   when :unknown
                     @current_state = :unknown
+
+                  when :parameters
+                    if @current_pos + 1 < @unknown_string_len
+                      @formatted_string << "\n"
+                    end
+                    if @state_stack[-1] == :bottom_level
+                      @state_stack.pop
+                    else
+                      @indent_level -= 1
+                    end
+                    @state_stack.pop
+                    @current_state = :unknown
+
+                  when :parameters_name
+                    group_value_end :parameters_start, "}"
+
+                  when :parameters_start
+                    output_end
 
                   when :class_name
                     group_value_end :variable,
@@ -79,11 +133,31 @@ module Galaxy
                     @indent_level += 1
 
                   when :variable
-                    group_value_end :variable_equal,
-                                    ">",
-                                    append_text:         " ",
-                                    group_end_same_line: !@variable_set,
-                                    end_append_text:     @indent_level == 0 ? "\n" : ""
+                    if (position_matches_string(@current_pos - 1, ":") &&
+                        ((!@print_html_safe &&
+                            0 == (@unknown_string[@current_pos..-1] =~ /^[ \t\r\n]*({.*?}|\#<.*?>|\[.*?\]|\".*?\"|[^\n,\"]+)[ \t\r\n]*[,\>]/)) ||
+                            (@print_html_safe &&
+                                0 == (@unknown_string[@current_pos..-1] =~ /^[ \t\r\n]*({.*?}|\#&lt\;.*?&gt\;|\[.*?\]|&quot\;.*?&quot\;|[^\n,\"]+)[ \t\r\n]*(,|&gt\;)/))
+                        ))
+                      @state_stack.pop
+                      @state_stack << :group_implied
+                      @state_stack << :hash_key_symbol_post
+                    elsif (!position_matches_string(@current_pos - 1, ":") &&
+                        ((!@print_html_safe &&
+                            0 == (@unknown_string[@current_pos..-1] =~ /^[ \t\r\n]*=>[ \t\r\n]*({.*?}|\#<.*?>|\[.*?\]|\".*?\"|[^\n,\"]+)[ \t\r\n]*[,\>]/)) ||
+                            (@print_html_safe &&
+                                0 == (@unknown_string[@current_pos..-1] =~ /^[ \t\r\n]*=&gt\;[ \t\r\n]*({.*?}|\#&lt\;.*?&gt\;|\[.*?\]|&quot\;.*?&quot\;|[^\n,\"&]+)[ \t\r\n]*(,|&gt\;)/))
+                        ))
+                      @state_stack.pop
+                      @state_stack << :group_implied
+                      @state_stack << :hash_key_string
+                    else
+                      group_value_end :variable_equal,
+                                      ">",
+                                      append_text:         " ",
+                                      group_end_same_line: !@variable_set,
+                                      end_append_text:     @indent_level == 0 ? "\n" : ""
+                    end
 
                   when :variable_equal,
                       :variable_comma
@@ -97,21 +171,40 @@ module Galaxy
                                     end_append_text: @indent_level == 0 ? "\n" : ""
 
                   when :hash_key_symbol_post
-                    group_value_end :hash_value, "}", append_text: " ", add_value: true
+                    group_value_end :hash_value,
+                                    @state_stack[-2] == :group_implied ? ">" : "}",
+                                    append_text: " ",
+                                    add_value:   true
+                    if @state_stack[-1] == :group_implied
+                      @state_stack.pop
+                    end
 
                   when :hash_key, :hash_key_symbol, :hash_key_string
-                    group_value_end :hash_rocket, "}", append_text: " "
+                    group_value_end :hash_rocket,
+                                    @state_stack[-2] == :group_implied ? ">" : "}",
+                                    append_text: " "
+                    if @state_stack[-1] == :group_implied
+                      @state_stack.pop
+                    end
 
                   when :hash_rocket,
                       :hash_comma
                     group_value_end :hash_value,
-                                    "}",
+                                    @state_stack[-2] == :group_implied ? ">" : "}",
                                     invalid_state:  true,
                                     add_value:      true,
                                     group_indented: "true"
+                    if @state_stack[-1] == :group_implied
+                      @state_stack.pop
+                    end
 
                   when :hash_value
-                    group_value_end :hash_comma, "}", same_line: true
+                    group_value_end :hash_comma,
+                                    @state_stack[-1] == :group_implied ? ">" : "}",
+                                    same_line: true
+                    if @state_stack[-1] == :group_implied
+                      @state_stack.pop
+                    end
 
                   when :array
                     group_value_end :array_comma, "]"
@@ -121,9 +214,18 @@ module Galaxy
 
               when :hash_rocket
                 if @unknown_string[@current_pos] == ","
-                  group_separator ",", :hash_value, "}", append_text: " "
+                  group_separator ",",
+                                  :hash_value,
+                                  @state_stack[-2] == :group_implied ? ">" : "}",
+                                  append_text: " "
                 else
-                  group_separator "=>", :hash_value, "}", append_text: " "
+                  group_separator "=>",
+                                  :hash_value,
+                                  @state_stack[-2] == :group_implied ? ">" : "}",
+                                  append_text: " "
+                end
+                if @state_stack[-1] == :group_implied
+                  @state_stack.pop
                 end
 
               when :variable_equal
@@ -148,11 +250,27 @@ module Galaxy
                 group_separator ",", :array, "]"
 
               when :hash_comma
-                group_separator ",", :hash_key, "}"
+                group_separator ",",
+                                :hash_key,
+                                @state_stack[-1] == :group_implied ? ">" : "}"
+                if @state_stack[-1] == :group_implied
+                  @state_stack.pop
+                end
+
+              when :parameters_start
+                if @unknown_string[@current_pos] == "{"
+                  if @start_pos == @current_pos
+                    start_grouping :hash_key
+                  else
+                    output_end
+                  end
+                else
+                  output_end
+                end
 
               when :whitespace
                 case @unknown_string[@current_pos]
-                  when " ", "\r", "\n"
+                  when " ", "\r", "\n", "\t"
                     @start_pos = @current_pos + 1
 
                   else
@@ -172,10 +290,15 @@ module Galaxy
               when :value
                 case @unknown_string[@current_pos]
                   when "{"
-                    if @start_pos == @current_pos
-                      start_grouping :hash_key
-                    else
-                      output_end
+                    case @state_stack[-1]
+                      when :parameters_name
+                        value_end
+                      else
+                        if @start_pos == @current_pos
+                          start_grouping :hash_key
+                        else
+                          output_end
+                        end
                     end
 
                   when "["
@@ -220,6 +343,10 @@ module Galaxy
                           @current_pos += 1
                           value_end
                         end
+
+                      when :parameters_name
+                        @current_pos += 1
+                        value_end
                     end
 
                   when "&", ">"
@@ -231,6 +358,16 @@ module Galaxy
                             :variable_value,
                             :variable_comma
                           value_end
+                        when :hash_key,
+                            :hash_key_symbol_post,
+                            :hash_key_symbol,
+                            :hash_key_string,
+                            :hash_rocket,
+                            :hash_value,
+                            :hash_comma
+                          if @state_stack[-2] == :group_implied
+                            value_end
+                          end
                       end
                     elsif position_matches_string(@current_pos, "\"")
                       start_quote
@@ -274,7 +411,7 @@ module Galaxy
                         value_end
                     end
 
-                  when " ", "\r", "\n"
+                  when " ", "\r", "\n", "\t"
                     case @state_stack[-1]
                       when :variable_value,
                           :array,
@@ -296,7 +433,7 @@ module Galaxy
           end
 
           @formatted_string.rstrip!
-          @formatted_string.html_safe if @print_html_safe
+          @formatted_string = @formatted_string.html_safe if @print_html_safe
           @formatted_string
         else
           @unknown_string
@@ -322,7 +459,7 @@ module Galaxy
         @state_stack.pop
 
         if position_matches_string @current_pos, group_end_char
-          output_line(@unknown_string[@start_pos..@current_pos - 1], options)
+          output_line(@unknown_string[@start_pos..@current_pos - 1], options.merge(strip_output: true))
           @start_pos = @current_pos
 
           safe_end = translate_value(group_end_char)
@@ -333,7 +470,7 @@ module Galaxy
           if options[:invalid_state]
             output_end
           else
-            output_line(@unknown_string[@start_pos..@current_pos - 1], options)
+            output_line(@unknown_string[@start_pos..@current_pos - 1], options.merge(strip_output: true))
 
             if options[:append_text]
               @formatted_string << options[:append_text]
@@ -357,6 +494,7 @@ module Galaxy
           safe_separator = translate_value(separator_value)
 
           @formatted_string << @unknown_string[@start_pos..(@current_pos + safe_separator.length - 1)]
+          @formatted_string.rstrip!
 
           if options[:append_text]
             @formatted_string << options[:append_text]
@@ -392,8 +530,16 @@ module Galaxy
         end
 
         @indent_level -= 1
-        if @state_stack[-1] == :bottom_level
-          @state_stack.pop
+        if @state_stack[-1] == :bottom_level ||
+            (@state_stack[-1] == :group_implied && @state_stack[-2] == :bottom_level)
+          if @state_stack[-1] == :bottom_level
+            @state_stack.pop
+          else
+            @state_stack.pop
+            @state_stack.pop
+            @state_stack << :group_implied
+          end
+
           @indent_level += 1
         end
 
@@ -474,6 +620,10 @@ module Galaxy
           end
 
           @formatted_string << text
+
+          if options[:strip_output]
+            @formatted_string.rstrip!
+          end
         end
       end
     end
