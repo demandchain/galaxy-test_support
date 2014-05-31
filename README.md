@@ -1,4 +1,4 @@
-# Galaxy::TestSupport
+# TestSupport
 
 This GEM simply provides some diagnostic tools that I think will be useful when running tests.
 
@@ -6,7 +6,7 @@ This GEM simply provides some diagnostic tools that I think will be useful when 
 
 Add this line to your application's Gemfile:
 
-    gem 'galaxy-test_support', :git => "git@github.com:demandchain/galaxy-test_support.git"
+    gem 'test_support', :git => "git@github.com:demandchain/test_support.git"
 
 ## Usage
 
@@ -27,13 +27,13 @@ To add the hooks for automated error reporting on step failure, simply add the f
 of the indicated file:
 
 For RSpec:
-    spec_helper.rb:  require "galaxy/test_support/rspec_hooks"
+    spec_helper.rb:  require "test_support/rspec_hooks"
 
 For Spinach:
-    env.rb:  require "galaxy/test_support/spinach_hooks"
+    env.rb:  require "test_support/spinach_hooks"
 
 For Cucumber:
-    env.rb:  require "galaxy/test_support/cucumber_hooks"
+    env.rb:  require "test_support/cucumber_hooks"
 
 ### Finder analysis
 
@@ -56,7 +56,7 @@ To call this function on a finder function:
 
 You would make the following call:
 
-    Galaxy::TestSupport::CapybaraDiagnostics.test_finder self, :sample_function_name, sample_param_1, sample_param_2, sample_param_3...
+    TestSupport::CapybaraDiagnostics.test_finder self, :sample_function_name, sample_param_1, sample_param_2, sample_param_3...
 
 The test_finder function outputs all results into the same report as the automated step failure report.  It will
 perform the following actions:
@@ -83,7 +83,7 @@ Sometimes you aren't having a problem with the finder, yet something isn't worki
 nice to be able to see information about an element on the page.  To do this, you can output the finder analysis
 directly:
 
-    finder_info = Galaxy::TestSupport::CapybaraDiagnostics::FindAction.new(parent_object, :find, "#options")
+    finder_info = TestSupport::CapybaraDiagnostics::FindAction.new(parent_object, :find, "#options")
     finder_info.generate_diagnostics_report "A label for the report"
     found_object = finder_info.run
 
@@ -94,15 +94,15 @@ configure the log capture process as follows:
 
 To turn off the automatic grabbing of logs (default is true):
 
-    Galaxy::TestSupport::Configuration.grab_logs = false
+    TestSupport::Configuration.grab_logs = false
 
 To adjust the number of lines fetched (default is 500 lines):
 
-    Galaxy::TestSupport::Configuration.default_num_lines = 500
+    TestSupport::Configuration.default_num_lines = 500
 
 To add other log files:
 
-    Galaxy::TestSupport::Configuration.add_log_file("..\other_project\logs\development.log", num_lines: 500)
+    TestSupport::Configuration.add_log_file("..\other_project\logs\development.log", num_lines: 500)
 
 The first parameter is the relative path of the log file from the project root.  You may also specify the
 following options:
@@ -113,12 +113,9 @@ following options:
 
 You'll probably save yourself a lot of pain during development if you change the Gemfile line to this:
 
-    gem 'galaxy-test_support', '~> 0.0.6', :path => '../galaxy-test_support'
+    gem 'test_support', '~> 0.0.6', :path => '../test_support'
 
 ## Reports
-
-*Incomplete*
-This is a work in progress, but I am working on a way to configure and customize reports a little.
 
 Reports for each error found are split into two halves:
 
@@ -133,10 +130,10 @@ separate errors.  (When there is a lot of information, the boundry between one e
  when scrolling.
 
 ### Configured Reports
-Reports are generated using:  Galaxy::TestSupport::ConfiguredReport
+Reports are generated using:  TestSupport::ConfiguredReport
 
 To change the output order and/or information for a report, you can access the ConfiguredReport class for a report
-using Galaxy::TestSupport::Configuration.report_configuration.  The following values can be passed in to get the
+using TestSupport::Configuration.report_configuration.  The following values can be passed in to get the
 different report configurations:
 
 * :rspec
@@ -200,12 +197,12 @@ There are a handful of special conditions:
 * if the last_line is to_s, the label that is output will not be to_s, but the previous item level
 * :logs
 
-This will output the logs using Galaxy::TestSupport::LogCapture.capture_logs
+This will output the logs using TestSupport::LogCapture.capture_logs
 Unlike normal items, if there are no logs to export, this will not generate an error.
 
 * :capybara_diagnostics
 
-This will output Capybara infomration using Galaxy::TestSupport::CapybaraDiagnostics.output_page_detail_section.
+This will output Capybara infomration using TestSupport::CapybaraDiagnostics.output_page_detail_section.
 NOTE:  This option requres a parameter be passed into the options for :diagnostics_name Unlike normal items,
 if Capybara is not being used, this will not generate an error.
 

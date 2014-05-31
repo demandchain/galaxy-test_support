@@ -6,15 +6,15 @@ require ::File.expand_path('configured_report', File.dirname(__FILE__))
 
 RSpec.configure do |config|
   config.before(:suite) do
-    Galaxy::TestSupport::DiagnosticsReportBuilder.new_report("diagnostics_rspec_report")
+    TestSupport::DiagnosticsReportBuilder.new_report("diagnostics_rspec_report")
   end
 
   config.after(:suite) do
-    Galaxy::TestSupport::DiagnosticsReportBuilder.current_report("diagnostics_rspec_report").close_report
+    TestSupport::DiagnosticsReportBuilder.current_report("diagnostics_rspec_report").close_report
   end
 
   config.around(:each) do |example|
-    @seed_value = Galaxy::TestSupport::Configuration.rspec_seed ||
+    @seed_value = TestSupport::Configuration.rspec_seed ||
         100000000000000000000000000000000000000 + rand(899999999999999999999999999999999999999)
 
     srand(@seed_value)
@@ -28,8 +28,8 @@ RSpec.configure do |config|
 
   config.after(:each) do
     if (@example.exception)
-      Galaxy::TestSupport::DiagnosticsReportBuilder.current_report("diagnostics_rspec_report").within_section("Error:") do |report|
-        report_generator = Galaxy::TestSupport::Configuration.report_configuration(:rspec)
+      TestSupport::DiagnosticsReportBuilder.current_report("diagnostics_rspec_report").within_section("Error:") do |report|
+        report_generator = TestSupport::Configuration.report_configuration(:rspec)
 
         report_generator.add_report_objects(self: self)
         report_generator.generate_report_for_object(report, diagnostics_name: @example.full_description)

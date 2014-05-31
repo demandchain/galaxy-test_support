@@ -6,8 +6,8 @@ require ::File.expand_path('configured_report', File.dirname(__FILE__))
 
 After do |scenario|
   if scenario.failed?
-    Galaxy::TestSupport::DiagnosticsReportBuilder.current_report.within_section("Error:") do |report|
-      report_generator = Galaxy::TestSupport::Configuration.report_configuration(:cucumber)
+    TestSupport::DiagnosticsReportBuilder.current_report.within_section("Error:") do |report|
+      report_generator = TestSupport::Configuration.report_configuration(:cucumber)
 
       report_generator.add_report_objects(self: self, scenario: scenario)
       report_generator.generate_report_for_object(report, diagnostics_name: scenario.file_colon_line)
@@ -16,7 +16,7 @@ After do |scenario|
 end
 
 at_exit do
-  Galaxy::TestSupport::DiagnosticsReportBuilder.current_report.close_report
+  TestSupport::DiagnosticsReportBuilder.current_report.close_report
 end
 
-Galaxy::TestSupport::DiagnosticsReportBuilder.new_report
+TestSupport::DiagnosticsReportBuilder.new_report
