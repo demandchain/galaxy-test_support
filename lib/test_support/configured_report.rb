@@ -328,15 +328,15 @@ module TestSupport
           end
         end
       end
+    end
 
-      def get_instance_variable(the_object, instance_variable)
-        variable_name = instance_variable.to_s
-        variable_name = variable_name[1..-1] if variable_name[0] == "@"
-        if the_object.respond_to?(variable_name)
-          the_object.send(variable_name)
-        else
-          the_object.instance_variable_get(instance_variable)
-        end
+    def get_instance_variable(the_object, instance_variable)
+      variable_name = instance_variable.to_s
+      variable_name = variable_name[1..-1] if variable_name[0] == "@"
+      if the_object.respond_to?(variable_name)
+        the_object.send(variable_name)
+      else
+        the_object.instance_variable_get(instance_variable)
       end
     end
   end
