@@ -21,8 +21,8 @@ Spinach.hooks.on_error_step do |step_data, exception, location, step_definitions
 end
 
 def debug_failed_step(failure_description, step_data, exception, location, step_definitions)
-  Galaxy::TestSupport::DiagnosticsReportBuilder.current_report.within_section("#{failure_description}:") do |report|
-    report_generator = Galaxy::TestSupport::Configuration.report_configuration(:spinach)
+  TestSupport::DiagnosticsReportBuilder.current_report.within_section("#{failure_description}:") do |report|
+    report_generator = TestSupport::Configuration.report_configuration(:spinach)
 
     report_generator.add_report_objects(failure_description: "#{failure_description} at:, #{location[0]}:#{location[1]}",
                                         step_data:        step_data,
@@ -36,7 +36,7 @@ def debug_failed_step(failure_description, step_data, exception, location, step_
 end
 
 Spinach.hooks.after_run do |status|
-  Galaxy::TestSupport::DiagnosticsReportBuilder.current_report.close_report
+  TestSupport::DiagnosticsReportBuilder.current_report.close_report
 end
 
-Galaxy::TestSupport::DiagnosticsReportBuilder.new_report
+TestSupport::DiagnosticsReportBuilder.new_report
