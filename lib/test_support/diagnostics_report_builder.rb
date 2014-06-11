@@ -10,10 +10,18 @@ module TestSupport
         "".html_safe + value.to_s.force_encoding("UTF-8")
       end
 
+      def root_folder
+        if Object.const_defined?("Rails")
+          Rails.root
+        else
+          FileUtils.pwd
+        end
+      end
+
       def format_code_refs(some_text)
         safe_text = TestSupport::DiagnosticsReportBuilder.escape_string(some_text)
 
-        safe_text.gsub(/(#{Rails.root}|\.\/|(?=(?:^features|^spec)\/))([^\:\n]*\:[^\:\n\>& ]*)/,
+        safe_text.gsub(/(#{TestSupport::DiagnosticsReportBuilder::root_folder}|\.\/|(?=(?:^features|^spec)\/))([^\:\n]*\:[^\:\n\>& ]*)/,
                        "\\1 <span class=\"test-support-app-file\">\\2\\3</span> ").html_safe
       end
 
@@ -178,7 +186,7 @@ module TestSupport
 
     def index_folder_name
       unless @index_folder_name
-        @index_folder_name = Rails.root.join("#{@parent_folder_name}/")
+        @index_folder_name = File.join(TestSupport::DiagnosticsReportBuilder::root_folder, "#{@parent_folder_name}/")
 
         cleanup_legacy_structure
 
@@ -200,9 +208,11 @@ module TestSupport
       new_folder_name = index_folder_name
       FileUtils.mkdir_p new_folder_name
 
-      if Dir.exists?(Rails.root.join("#{legacy_folder_name}/")) &&
-          Dir[Rails.root.join("#{legacy_folder_name}/*")].map { |dir| File.directory?(dir) ? dir : nil }.compact.blank? &&
-          !Dir[Rails.root.join("#{legacy_folder_name}/*")].map { |file| File.file?(file) ? file : nil }.compact.blank?
+      if Dir.exists?(File.join(TestSupport::DiagnosticsReportBuilder::root_folder, "#{legacy_folder_name}/")) &&
+          Dir[File.join(TestSupport::DiagnosticsReportBuilder::root_folder, "#{legacy_folder_name}/*")].
+              map { |dir| File.directory?(dir) ? dir : nil }.compact.blank? &&
+          !Dir[File.join(TestSupport::DiagnosticsReportBuilder::root_folder, "#{legacy_folder_name}/*")].
+              map { |file| File.file?(file) ? file : nil }.compact.blank?
         if (@base_folder_name == legacy_folder_name)
           new_sub_dir = "#{legacy_folder_name}_#{DateTime.now.strftime("%Y_%m_%d_%H_%M_%S")}"
         else
@@ -212,19 +222,20 @@ module TestSupport
 
         if (legacy_folder_name == @parent_folder_name)
           FileUtils.mkdir_p full_sub_dir
-          Dir[Rails.root.join("#{legacy_folder_name}/*")].each do |file|
+          Dir[File.join(TestSupport::DiagnosticsReportBuilder::root_folder, "#{legacy_folder_name}/*")].each do |file|
             unless file == full_sub_dir
               FileUtils.mv file, File.join(full_sub_dir, File.basename(file))
             end
           end
         else
-          FileUtils.mv Rails.root.join("#{legacy_folder_name}/"), full_sub_dir
+          FileUtils.mv File.join(TestSupport::DiagnosticsReportBuilder::root_folder, "#{legacy_folder_name}/"), full_sub_dir
         end
 
         add_index_file "#{new_sub_dir}/index.html"
       end
 
-      old_directories = Dir[Rails.root.join("#{legacy_folder_name}_*")].map { |dir| File.directory?(dir) ? dir : nil }.compact
+      old_directories = Dir[File.join(TestSupport::DiagnosticsReportBuilder::root_folder, "#{legacy_folder_name}_*")].
+          map { |dir| File.directory?(dir) ? dir : nil }.compact
       unless Array.wrap(old_directories).blank?
         old_directories.each do |dir|
           new_sub_dir = File.basename(dir)
