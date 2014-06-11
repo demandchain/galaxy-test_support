@@ -9,16 +9,21 @@ module TestSupport
       # This function will capture the logs and output them to the report
       def capture_logs(report_table = nil)
         if report_table
-          log_folder = Rails.root.to_s
-          if (log_folder =~ /\/features\/?$/ || log_folder =~ /\/spec\/?$/)
-            log_folder = File.join(log_folder, "../")
+          if Object.const_defined?("Rails")
+            log_folder = Rails.root.to_s
+            if (log_folder =~ /\/features\/?$/ || log_folder =~ /\/spec\/?$/)
+              log_folder = File.join(log_folder, "../")
+            end
+
+            default_log_file = "log/#{Rails.env.to_s}.log"
+
+            output_log_file(report_table, File.join(log_folder, default_log_file))
+          else
+            log_folder = FileUtils.pwd
           end
 
-          default_log_file = "log/#{Rails.env.to_s}.log"
-
-          output_log_file(report_table, File.join(log_folder, default_log_file))
-          TestSupport::Configuration.user_log_files.each do |relatvive_log_file, options|
-            output_log_file(report_table, File.join(log_folder, relatvive_log_file), options)
+          TestSupport::Configuration.user_log_files.each do |relative_log_file, options|
+            output_log_file(report_table, File.join(log_folder, relative_log_file), options)
           end
         else
           TestSupport::DiagnosticsReportBuilder.current_report.within_section("Log Dump:") do |report|
