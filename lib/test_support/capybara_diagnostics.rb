@@ -14,8 +14,8 @@ module TestSupport
         TestSupport::DiagnosticsReportBuilder.current_report.within_section("Page Dump:") do |report|
           report.within_table do |report_table|
             TestSupport::CapybaraDiagnostics.output_page_detail_section(screenshot_name,
-                                                                                report,
-                                                                                report_table)
+                                                                        report,
+                                                                        report_table)
           end
         end
       end
@@ -33,8 +33,11 @@ module TestSupport
         report_table.write_stats "Page URL:", my_page.current_url if my_page.try(:current_url)
 
         if my_page.driver.respond_to? :evaluate_script
-          report_table.write_stats "Window Height:", my_page.driver.evaluate_script("window.innerHeight")
-          report_table.write_stats "Window Width:", my_page.driver.evaluate_script("window.innerWidth")
+          begin
+            report_table.write_stats "Window Height:", my_page.driver.evaluate_script("window.innerHeight")
+            report_table.write_stats "Window Width:", my_page.driver.evaluate_script("window.innerWidth")
+          rescue Capybara::NotSupportedByDriverError
+          end
         end
 
         if my_page.respond_to?(:html)
@@ -214,8 +217,11 @@ module TestSupport
                                  do_not_pretty_print: true
 
         if Capybara.current_session.driver.respond_to? :evaluate_script
-          report_table.write_stats "Window Height:", Capybara.current_session.driver.evaluate_script("window.innerHeight")
-          report_table.write_stats "Window Width:", Capybara.current_session.driver.evaluate_script("window.innerWidth")
+          begin
+            report_table.write_stats "Window Height:", Capybara.current_session.driver.evaluate_script("window.innerHeight")
+            report_table.write_stats "Window Width:", Capybara.current_session.driver.evaluate_script("window.innerWidth")
+          rescue Capybara::NotSupportedByDriverError
+          end
         end
       end
 
@@ -459,7 +465,10 @@ module TestSupport
         if (@test_object.respond_to?(:evaluate_script))
           element_id = get_attribute element, "id"
           unless (element_id.blank?)
-            element_report.write_stats "outterHTML", @test_object.evaluate_script("$(\"\##{element_id}\")[0].outerHTML")
+            begin
+              element_report.write_stats "outterHTML", @test_object.evaluate_script("$(\"\##{element_id}\")[0].outerHTML")
+            rescue Capybara::NotSupportedByDriverError
+            end
           end
         end
         element_report.write_stats "inspect", element

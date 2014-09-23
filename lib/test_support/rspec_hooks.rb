@@ -13,27 +13,23 @@ RSpec.configure do |config|
     TestSupport::DiagnosticsReportBuilder.current_report("diagnostics_rspec_report").close_report
   end
 
-  config.around(:each) do |example|
+  config.before(:each) do |example|
     @seed_value = TestSupport::Configuration.rspec_seed ||
         100000000000000000000000000000000000000 + rand(899999999999999999999999999999999999999)
 
     srand(@seed_value)
-
-    example.run
-
-    if (@example.exception)
-      puts ("random seed for testing was: #{@seed_value}")
-    end
   end
 
-  config.after(:each) do
-    if (@example.exception)
+  config.after(:each) do |example|
+    if (example.exception)
       TestSupport::DiagnosticsReportBuilder.current_report("diagnostics_rspec_report").within_section("Error:") do |report|
         report_generator = TestSupport::Configuration.report_configuration(:rspec)
 
         report_generator.add_report_objects(self: self)
-        report_generator.generate_report_for_object(report, diagnostics_name: @example.full_description)
+        report_generator.generate_report_for_object(report, diagnostics_name: example.full_description)
       end
+
+      puts ("random seed for testing was: #{@seed_value}")
     end
   end
 end
