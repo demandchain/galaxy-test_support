@@ -7,7 +7,7 @@ module TestSupport
 
     class << self
       def escape_string value
-        "".html_safe + value.to_s.force_encoding("UTF-8")
+        "".html_safe + (value.to_s + "").force_encoding("UTF-8")
       end
 
       def root_folder
@@ -337,7 +337,7 @@ module TestSupport
 
       File.open(index_report_page_name, "w:UTF-8") do |write_file|
         indexes.each do |index_line|
-          write_file.write index_line.to_s.force_encoding("UTF-8")
+          write_file.write (index_line.to_s + "").force_encoding("UTF-8")
         end
       end
     end
@@ -360,7 +360,7 @@ module TestSupport
 
       File.open(index_report_page_name, "w:UTF-8") do |write_file|
         indexes.each do |index_line|
-          write_file.write index_line.to_s.force_encoding("UTF-8")
+          write_file.write (index_line.to_s + "").force_encoding("UTF-8")
         end
       end
     end
@@ -414,7 +414,7 @@ module TestSupport
     def page_link(page_html)
       dump_file_name = html_dump_file_name
       File.open(dump_file_name, "w:UTF-8") do |dump_file|
-        dump_file.write page_html.to_s.force_encoding("UTF-8")
+        dump_file.write (page_html.to_s + "").force_encoding("UTF-8")
       end
       "<iframe src=\"#{File.basename(dump_file_name)}\" class=\"test-support-sample-frame\"></iframe>\n".html_safe
     end
