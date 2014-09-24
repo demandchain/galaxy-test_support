@@ -21,6 +21,9 @@ RSpec.configure do |config|
   end
 
   config.after(:each) do |example|
+    # Difference between RSPEC 2 and RSPEC 3
+    example = example.example if example.respond_to?(:example)
+
     if (example.exception)
       TestSupport::DiagnosticsReportBuilder.current_report("diagnostics_rspec_report").within_section("Error:") do |report|
         report_generator = TestSupport::Configuration.report_configuration(:rspec)
