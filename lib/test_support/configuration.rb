@@ -10,33 +10,32 @@ module TestSupport
     @@configured_reports = {
         rspec:    TestSupport::ConfiguredReport.new(
                       min_fields:           [
-                                                :self__instance_variables__example__full_description,
-                                                :self__instance_variables__example__location,
-                                                :self__instance_variables__example__exception__to_s,
-                                                :self__instance_variables__example__exception__backtrace
+                                                :example__full_description,
+                                                :example__location,
+                                                :example__exception__to_s,
+                                                :example__exception__backtrace
                                             ],
                       more_info_fields:     [
-                                                :self__instance_variables,
-                                                :self__instance_variables__example__instance_variables,
-                                                :self__instance_variables__example__metadata__caller,
+                                                :example__instance_variables,
+                                                :example__example_group_instance__instance_variables,
+                                                :example__metadata__caller,
                                                 :logs,
                                                 :capybara_diagnostics
                                             ],
                       expand_fields:        [
-                                                :self__instance_variables,
-                                                :self__instance_variables__example__instance_variables,
-                                                :self__instance_variables__response,
-                                                :self__instance_variables__controller,
-                                                :self__instance_variables__request,
+                                                :example__instance_variables,
+                                                :example__example_group_instance__instance_variables,
+                                                :example__example_group_instance__instance_variables__response,
+                                                :example__example_group_instance__instance_variables__controller,
+                                                :example__example_group_instance__instance_variables__request,
                                             ],
                       expand_inline_fields: [
-                                                :self__instance_variables____memoized
+                                                :example__example_group_instance__instance_variables____memoized
                                             ],
                       exclude_fields:       [
-                                                :self__instance_variables__fixture_connections,
-                                                :self__instance_variables__example,
-                                                :self__instance_variables__example__instance_variables__example_group_instance,
-                                                :self__instance_variables__example__instance_variables__metadata
+                                                :example__instance_variables__fixture_connections,
+                                                :example__instance_variables__example_group_instance,
+                                                :example__instance_variables__metadata
                                             ]
                   ),
         cucumber: TestSupport::ConfiguredReport.new(

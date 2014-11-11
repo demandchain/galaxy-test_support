@@ -28,7 +28,7 @@ RSpec.configure do |config|
       TestSupport::DiagnosticsReportBuilder.current_report("diagnostics_rspec_report").within_section("Error:") do |report|
         report_generator = TestSupport::Configuration.report_configuration(:rspec)
 
-        report_generator.add_report_objects(self: self)
+        report_generator.add_report_objects(example: example, example_group: example.example_group)
         report_generator.generate_report_for_object(report, diagnostics_name: example.full_description)
       end
 
